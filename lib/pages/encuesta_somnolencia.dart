@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:somnolence_app/widgets/logo_appbar.dart';
 
 class EncuestaSomnolencia extends StatefulWidget {
   const EncuestaSomnolencia({super.key});
@@ -54,7 +53,7 @@ class _EncuestaSomnolenciaState extends State<EncuestaSomnolencia> {
           duration: Duration(seconds: 2),
         ),
       );
-      Navigator.pop(context);
+      Navigator.pop(context, true);
     }
   }
 
@@ -62,25 +61,9 @@ class _EncuestaSomnolenciaState extends State<EncuestaSomnolencia> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: const LogoAppbar(),
-        title: const Text(
-          'Arenas & Arenas',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
+        title: const Text('Test de Somnolencia'),
         backgroundColor: const Color(0xFFF35F34),
         foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [IconButton(icon: const Icon(Icons.logout), onPressed: () {})],
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFFF35F34), Color.fromARGB(255, 185, 120, 104)],
-              begin: Alignment.bottomRight,
-              end: Alignment.topLeft,
-            ),
-          ),
-        ),
       ),
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 500),

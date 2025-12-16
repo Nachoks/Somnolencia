@@ -1,55 +1,51 @@
-// test_colores_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:somnolence_app/features/evaluacion_conductor/viewsmodels/reaccion_view_model.dart';
-import '../models/estimulo.dart'; // Importa el Modelo
+import '../viewsmodels/reaccion_view_model.dart';
 
 class TestColoresPage extends StatelessWidget {
   const TestColoresPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Usamos LayoutBuilder para que el ViewModel conozca el tamaño
     return LayoutBuilder(
       builder: (context, constraints) {
         final viewModel = context.read<ReaccionViewModel>();
-        // Le pasamos las dimensiones al ViewModel antes de usarlo
         viewModel.establecerTamanoPantalla(
           constraints.maxWidth,
           constraints.maxHeight,
         );
 
         return Scaffold(
-          appBar: AppBar(title: const Text('Test de Reacción Selectiva')),
+          appBar: AppBar(
+            title: const Text('Test de Reacción Selectiva'),
+            backgroundColor: const Color(0xFFF35F34),
+            foregroundColor: Colors.white,
+          ),
           body: Consumer<ReaccionViewModel>(
             builder: (context, vm, child) {
               return Stack(
                 children: [
-                  // 1. Área de Estímulos (Dibuja los círculos activos)
-                  ...vm.estimulosActivos
-                      .map(
-                        (estimulo) => Positioned(
-                          left: estimulo.x,
-                          top: estimulo.y,
-                          child: GestureDetector(
-                            // Llama al método del ViewModel al tocar
-                            onTap: () => vm.manejarToqueEstimulo(estimulo.id),
-                            child: CirculoWidget(color: estimulo.color),
-                          ),
-                        ),
-                      )
-                      .toList(),
+                  // Área de estímulos
+                  ...vm.estimulosActivos.map(
+                    (estimulo) => Positioned(
+                      left: estimulo.x,
+                      top: estimulo.y,
+                      child: GestureDetector(
+                        onTap: () => vm.manejarToqueEstimulo(estimulo.id),
+                        child: _CirculoWidget(color: estimulo.color),
+                      ),
+                    ),
+                  ),
 
-                  // 2. Panel de Control Superior
-                  _construirPanelControl(vm),
+                  // Panel de control
+                  _buildPanelControl(vm),
 
-                  // 3. Botón de Inicio (Solo visible si no está corriendo)
+                  // Botón de inicio/resultados
                   if (!vm.estaCorriendo)
                     Center(
                       child: vm.targetsTocados > 0
-                          ? _construirBotonResultados(context, vm)
-                          : _construirBotonIniciar(vm),
+                          ? _buildBotonResultados(context, vm)
+                          : _buildBotonIniciar(vm),
                     ),
                 ],
               );
@@ -60,25 +56,47 @@ class TestColoresPage extends StatelessWidget {
     );
   }
 
-  // --- Widgets Auxiliares de la Vista ---
-
-  Widget _construirPanelControl(ReaccionViewModel vm) {
-    return Align(
-      alignment: Alignment.topCenter,
+  Widget _buildPanelControl(ReaccionViewModel vm) {
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
       child: Container(
-        color: Colors.white.withOpacity(0.9),
+        color: Colors.white,
         padding: const EdgeInsets.all(16.0),
-        width: double.infinity,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Tiempo Restante: ${vm.tiempoRestante}s',
+              'Tiempo: ${vm.tiempoRestante}s',
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
-            Text(
-              'Aciertos: ${vm.targetsTocados} | Errores: ${vm.errores} | Targets: ${vm.targetsGenerados}',
-              style: const TextStyle(fontSize: 16),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Text(
+                  'Aciertos: ${vm.targetsTocados}',
+                  style: const TextStyle(fontSize: 16),
+                ),
+                Text(
+                  'Errores: ${vm.errores}',
+                  style: const TextStyle(fontSize: 16),
+                ),
+                Text(
+                  'Targets: ${vm.targetsGenerados}',
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Toca solo los círculos ROJOS',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
+              ),
             ),
           ],
         ),
@@ -86,53 +104,79 @@ class TestColoresPage extends StatelessWidget {
     );
   }
 
-  Widget _construirBotonIniciar(ReaccionViewModel vm) {
+  Widget _buildBotonIniciar(ReaccionViewModel vm) {
     return ElevatedButton(
       onPressed: vm.iniciarTest,
       style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.all(20),
-        backgroundColor: Colors.lightGreen,
+        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+        backgroundColor: const Color(0xFFF35F34),
       ),
       child: const Text(
         'Iniciar Test (15s)',
-        style: TextStyle(fontSize: 20, color: Colors.white),
+        style: TextStyle(
+          fontSize: 20,
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
 
-  Widget _construirBotonResultados(BuildContext context, ReaccionViewModel vm) {
+  Widget _buildBotonResultados(BuildContext context, ReaccionViewModel vm) {
     return ElevatedButton(
-      onPressed: () => _mostrarResultadosFinales(context, vm),
+      onPressed: () => _mostrarResultados(context, vm),
       style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
         backgroundColor: Colors.blue,
       ),
       child: const Text(
-        'Ver Resultados del Último Test',
-        style: TextStyle(fontSize: 20, color: Colors.white),
+        'Ver Resultados',
+        style: TextStyle(
+          fontSize: 20,
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
 
-  void _mostrarResultadosFinales(BuildContext context, ReaccionViewModel vm) {
-    final resultados = vm.obtenerResultadosFinales();
+  void _mostrarResultados(BuildContext context, ReaccionViewModel vm) {
+    final r = vm.obtenerResultadosFinales();
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('✅ Evaluación Finalizada'),
-        content: Text(
-          '**1. Tiempo de Reacción Promedio (TRP)**:\n'
-          '**${resultados['trp']} ms**\n\n'
-          '**2. Tasa de Eficacia (TE)**:\n'
-          '**${resultados['eficacia']}%** (${resultados['tocados']} / ${resultados['generados']} targets)\n\n'
-          '**3. Errores Totales**:\n'
-          '**${resultados['errores']}**',
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Tiempo de Reacción Promedio:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text('${r['trp']} ms', style: const TextStyle(fontSize: 18)),
+            const SizedBox(height: 12),
+            const Text(
+              'Tasa de Eficacia:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              '${r['eficacia']}% (${r['tocados']} / ${r['generados']} targets)',
+              style: const TextStyle(fontSize: 18),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Errores Totales:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text('${r['errores']}', style: const TextStyle(fontSize: 18)),
+          ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Aceptar'),
+            child: const Text('Aceptar', style: TextStyle(fontSize: 16)),
           ),
         ],
       ),
@@ -140,20 +184,26 @@ class TestColoresPage extends StatelessWidget {
   }
 }
 
-// 4. 📄 lib/features/evaluacion_conductor/views/circulo_widget.dart (o integrado aquí)
-class CirculoWidget extends StatelessWidget {
+class _CirculoWidget extends StatelessWidget {
   final Color color;
-  const CirculoWidget({required this.color, super.key});
+  const _CirculoWidget({required this.color});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 50,
-      height: 50,
+      width: 80,
+      height: 80,
       decoration: BoxDecoration(
         color: color,
         shape: BoxShape.circle,
         border: Border.all(color: Colors.black, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
     );
   }
