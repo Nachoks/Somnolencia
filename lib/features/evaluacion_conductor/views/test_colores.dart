@@ -56,6 +56,7 @@ class TestColoresPage extends StatelessWidget {
     );
   }
 
+  //Panel de control superior
   Widget _buildPanelControl(ReaccionViewModel vm) {
     return Positioned(
       top: 0,
@@ -93,7 +94,7 @@ class TestColoresPage extends StatelessWidget {
             const Text(
               'Toca solo los círculos ROJOS',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Colors.red,
               ),
@@ -104,6 +105,7 @@ class TestColoresPage extends StatelessWidget {
     );
   }
 
+  //Boton iniciar Test
   Widget _buildBotonIniciar(ReaccionViewModel vm) {
     return ElevatedButton(
       onPressed: vm.iniciarTest,
@@ -122,6 +124,7 @@ class TestColoresPage extends StatelessWidget {
     );
   }
 
+  //Boton ver Resultados
   Widget _buildBotonResultados(BuildContext context, ReaccionViewModel vm) {
     return ElevatedButton(
       onPressed: () => _mostrarResultados(context, vm),
@@ -140,6 +143,7 @@ class TestColoresPage extends StatelessWidget {
     );
   }
 
+  //Resultados Test
   void _mostrarResultados(BuildContext context, ReaccionViewModel vm) {
     final r = vm.obtenerResultadosFinales();
 
@@ -188,6 +192,7 @@ class TestColoresPage extends StatelessWidget {
   }
 }
 
+//Circulos
 class _CirculoWidget extends StatelessWidget {
   final Color color;
   const _CirculoWidget({required this.color});

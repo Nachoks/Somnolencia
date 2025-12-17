@@ -12,16 +12,14 @@ class _EncuestaSomnolenciaState extends State<EncuestaSomnolencia> {
   final List<bool?> answers = List.filled(6, null);
 
   final List<String> questions = [
-    '¿Sientes sueño en este momento?',
-    '¿Has sentido la necesidad de tomar una siesta hoy?',
-    '¿Has experimentado micro sueños breves o periodos de sueño hoy?',
-    '¿Te sientes menos alerta de lo habitual?',
-    '¿Sientes pesadez en los ojos?',
-    '¿Tus movimientos son más lentos o torpes de lo normal?',
+    '¿Sientes sueño en este momento?', //NO
+    '¿Te sientes suficientemente alerta para conducir?', //SI
+    '¿Sientes pesadez en los ojos?', //NO
+    '¿Tus movimientos son más lentos o torpes de lo normal?', //NO
   ];
 
   bool get allQuestionsAnswered => answers.every((a) => a != null);
-
+  // Manejar el envío de la encuesta (validación >4 y alerta)
   void handleSubmit() {
     if (!allQuestionsAnswered) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -72,6 +70,7 @@ class _EncuestaSomnolenciaState extends State<EncuestaSomnolencia> {
     );
   }
 
+  // --- WIDGETS DESGLOSADOS ---
   Widget _buildSurvey() {
     return Container(
       key: const ValueKey('survey'),
@@ -105,6 +104,7 @@ class _EncuestaSomnolenciaState extends State<EncuestaSomnolencia> {
     );
   }
 
+  // --- WIDGETS AUXILIARES ---
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -142,6 +142,7 @@ class _EncuestaSomnolenciaState extends State<EncuestaSomnolencia> {
     );
   }
 
+  //Create question card widget
   Widget _buildQuestionCard(int index) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -229,6 +230,7 @@ class _EncuestaSomnolenciaState extends State<EncuestaSomnolencia> {
     );
   }
 
+  // Crear answer button widget
   Widget _buildAnswerButton(
     String label,
     IconData icon,
@@ -271,6 +273,7 @@ class _EncuestaSomnolenciaState extends State<EncuestaSomnolencia> {
     );
   }
 
+  // Crear submit button widget
   Widget _buildSubmitButton() {
     return Container(
       height: 56,
@@ -322,6 +325,7 @@ class _EncuestaSomnolenciaState extends State<EncuestaSomnolencia> {
     );
   }
 
+  // Alerta widget por alta somnolencia
   Widget _buildAlert() {
     return Container(
       key: const ValueKey('alert'),

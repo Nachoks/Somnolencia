@@ -12,13 +12,10 @@ class _EncuestaFatigaState extends State<EncuestaFatiga> {
   final List<bool?> answers = List.filled(7, null);
 
   final List<String> questions = [
-    '¿Has dormido menos de 7-9 horas en las últimas 24 horas?',
-    '¿Te sientes cansado y sin energía?',
-    '¿Te resultó difícil levantarte esta mañana?',
-    '¿Te sientes irritable o emocionalmente inestable?',
-    '¿Tienes dificultad para concentrarte?',
-    '¿Has experimentado olvidos o pérdida de memoria?',
-    '¿Tienes dolores musculares o de cabeza?',
+    '¿Has dormido mas de 7 horas en las últimas 24 horas?', //SI
+    '¿Me encuentro físicamente apto para conducir?', //SI
+    '¿Tienes dificultad para concentrarte?', //NO
+    '¿He conducido mas de 5 horas sin descansar agregar?', //NO
   ];
 
   bool get allQuestionsAnswered => answers.every((a) => a != null);
@@ -71,6 +68,7 @@ class _EncuestaFatigaState extends State<EncuestaFatiga> {
     );
   }
 
+  //Creacion de widget de encuesta
   Widget _buildSurvey() {
     return Container(
       key: const ValueKey('survey'),

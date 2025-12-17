@@ -71,15 +71,6 @@ class LoginPage extends StatelessWidget {
                   ),
                 ),
 
-                // Opción de "Olvidaste tu contraseña"
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {},
-                    child: const Text('¿Olvidaste tu contraseña?'),
-                  ),
-                ),
-
                 const SizedBox(height: 20),
 
                 // 5. Botón
