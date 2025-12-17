@@ -2,41 +2,38 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
-
-// Imports de tus archivos
 import 'package:somnolence_app/features/evaluacion_conductor/views/test_colores.dart';
 import 'package:somnolence_app/features/evaluacion_conductor/viewsmodels/reaccion_view_model.dart';
 import 'package:somnolence_app/pages/checklist.dart';
 import 'package:somnolence_app/pages/encuesta_fatiga.dart';
 import 'package:somnolence_app/pages/encuesta_somnolencia.dart';
+import 'package:somnolence_app/pages/login_page.dart';
+import 'package:somnolence_app/service/api_service.dart';
 import 'package:somnolence_app/widgets/logo_appbar.dart';
 
-// 1. Definimos el Enum para el tipo de auto
 enum TipoAuto { empresa, arrendado }
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final Map<String, dynamic>? usuario;
+
+  const HomePage({super.key, this.usuario});
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  // --- CONSTANTES DE ESTILO ---
   final Color _primaryColor = const Color(0xFFF35F34);
   final Color _secondaryColor = const Color.fromARGB(255, 185, 120, 104);
 
-  // --- ESTADO ---
   bool _cargandoUbicacion = false;
   String? _direccionGuardada;
 
-  // Estado de los Tests
   bool? _somnolenciaAprobada;
   bool? _fatigaAprobada;
   bool? _reaccionAprobada;
   bool? _checklistAprobado;
 
-  // 2. NUEVO ESTADO: Selección de Vehículo y Descripción
   TipoAuto? _tipoAutoSeleccionado;
   final TextEditingController _descripcionController = TextEditingController();
 
@@ -46,16 +43,12 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
-  // --- GETTERS (Lógica computada) ---
-
   bool get _todosTestsRealizados =>
       _somnolenciaAprobada != null &&
       _fatigaAprobada != null &&
       _reaccionAprobada != null &&
       _checklistAprobado != null;
 
-  // 3. NUEVA VALIDACIÓN: ¿Está todo listo para viajar?
-  // Requiere: Tests hechos Y vehículo seleccionado
   bool get _puedeIniciarViaje =>
       _todosTestsRealizados && _tipoAutoSeleccionado != null;
 
@@ -68,10 +61,7 @@ class _HomePageState extends State<HomePage> {
     return count;
   }
 
-  // --- LÓGICA DE NEGOCIO (GPS y Registro) ---
-  // --- LÓGICA DE NEGOCIO (GPS y Registro) ---
   Future<void> _registrarInicioViaje() async {
-    // 1. Validaciones: Tests aprobados
     bool hayReprobados = [
       _somnolenciaAprobada,
       _fatigaAprobada,
@@ -90,7 +80,6 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    // 2. Validación: Vehículo seleccionado
     if (_tipoAutoSeleccionado == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -103,18 +92,10 @@ class _HomePageState extends State<HomePage> {
     setState(() => _cargandoUbicacion = true);
 
     try {
-      // -----------------------------------------------------------
-      // PASO 1: CAPTURAR LA HORA EXACTA (Fecha y Hora)
-      // -----------------------------------------------------------
       final DateTime ahora = DateTime.now();
-
-      // Formato simple para mostrar al usuario (Ej: 14:30)
       String horaFormateada =
           "${ahora.hour.toString().padLeft(2, '0')}:${ahora.minute.toString().padLeft(2, '0')}";
 
-      // -----------------------------------------------------------
-      // PASO 2: OBTENER UBICACIÓN GPS
-      // -----------------------------------------------------------
       bool servicioHabilitado = await Geolocator.isLocationServiceEnabled();
       if (!servicioHabilitado) throw 'El GPS está desactivado.';
 
@@ -144,15 +125,10 @@ class _HomePageState extends State<HomePage> {
       }
 
       if (!mounted) return;
-      setState(() {
-        _direccionGuardada = direccionTexto;
-      });
+      setState(() => _direccionGuardada = direccionTexto);
 
-      // -----------------------------------------------------------
-      // PASO 3: CONSOLIDAR DATOS (Aquí tienes todo listo para enviar)
-      // -----------------------------------------------------------
       final datosFinales = {
-        'fecha_hora': ahora.toIso8601String(), // Formato ISO para base de datos
+        'fecha_hora': ahora.toIso8601String(),
         'vehiculo': _tipoAutoSeleccionado!.name,
         'descripcion': _descripcionController.text,
         'ubicacion': {
@@ -164,12 +140,8 @@ class _HomePageState extends State<HomePage> {
 
       print("✅ ENVIANDO DATOS: $datosFinales");
 
-      // -----------------------------------------------------------
-      // PASO 4: FEEDBACK VISUAL CON LA HORA
-      // -----------------------------------------------------------
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          // Mostramos la hora en el mensaje
           content: Text(
             '✅ Viaje iniciado a las $horaFormateada en: $direccionTexto',
           ),
@@ -189,7 +161,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // --- BUILD PRINCIPAL ---
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -210,7 +181,6 @@ class _HomePageState extends State<HomePage> {
             ),
             child: SingleChildScrollView(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   _buildHeaderInfo(),
                   const SizedBox(height: 24),
@@ -229,8 +199,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // --- WIDGETS ---
-
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       leading: const LogoAppbar(),
@@ -246,7 +214,38 @@ class _HomePageState extends State<HomePage> {
         IconButton(
           icon: const Icon(Icons.logout),
           tooltip: 'Cerrar sesión',
-          onPressed: () {},
+          onPressed: () async {
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Cerrar Sesión'),
+                content: const Text('¿Estás seguro que deseas cerrar sesión?'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Cancelar'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text(
+                      'Cerrar Sesión',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+            );
+
+            if (confirm == true) {
+              await ApiService.logout();
+              if (context.mounted) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                );
+              }
+            }
+          },
         ),
       ],
       flexibleSpace: Container(
@@ -262,6 +261,11 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildHeaderInfo() {
+    // CORRECCIÓN: Acceso seguro a los datos del usuario
+    final nombre = widget.usuario?['nombre_completo'] ?? 'Usuario';
+    final rut = widget.usuario?['rut'] ?? 'Sin RUT';
+    final empresa = widget.usuario?['empresa']?['nombre'] ?? 'Sin empresa';
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -277,28 +281,30 @@ class _HomePageState extends State<HomePage> {
       ),
       child: Column(
         children: [
-          // Info Usuario
           Icon(Icons.account_circle, size: 48, color: _primaryColor),
           const SizedBox(height: 10),
-          const Text(
-            'Juanito Perez',
-            style: TextStyle(
+          Text(
+            nombre,
+            style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
             ),
           ),
-          const Text(
-            '20.123.456-7',
-            style: TextStyle(
+          Text(
+            rut,
+            style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
               color: Colors.grey,
             ),
           ),
+          Text(
+            empresa,
+            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+          ),
           const Divider(height: 30),
 
-          // 4. AQUÍ ESTABA EL TEXTO ANTERIOR, AHORA ESTÁ EL FORMULARIO
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
@@ -312,7 +318,6 @@ class _HomePageState extends State<HomePage> {
           ),
           const SizedBox(height: 10),
 
-          // Opciones de Vehículo (Row para que queden lado a lado o Column si prefieres)
           Row(
             children: [
               Expanded(
@@ -335,7 +340,6 @@ class _HomePageState extends State<HomePage> {
 
           const SizedBox(height: 15),
 
-          // Campo descripción
           TextField(
             controller: _descripcionController,
             maxLines: 2,
@@ -379,7 +383,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // 5. WIDGET AUXILIAR PARA LAS TARJETAS DE SELECCIÓN DE AUTO
   Widget _buildVehicleOptionCard({
     required String label,
     required IconData icon,
@@ -390,11 +393,7 @@ class _HomePageState extends State<HomePage> {
     final bgColor = isSelected ? _primaryColor.withOpacity(0.1) : Colors.white;
 
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          _tipoAutoSeleccionado = value;
-        });
-      },
+      onTap: () => setState(() => _tipoAutoSeleccionado = value),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
@@ -472,7 +471,6 @@ class _HomePageState extends State<HomePage> {
   Widget _buildTestsList() {
     return Column(
       children: [
-        // Test Somnolencia
         _buildTestButton(
           text: 'Test Somnolencia',
           status: _somnolenciaAprobada,
@@ -483,13 +481,10 @@ class _HomePageState extends State<HomePage> {
                 builder: (context) => const EncuestaSomnolencia(),
               ),
             );
-            if (result is bool) {
-              setState(() => _somnolenciaAprobada = result);
-            }
+            if (result is bool) setState(() => _somnolenciaAprobada = result);
           },
         ),
         const SizedBox(height: 16),
-        // Test Fatiga
         _buildTestButton(
           text: 'Test Fatiga',
           status: _fatigaAprobada,
@@ -498,13 +493,10 @@ class _HomePageState extends State<HomePage> {
               context,
               MaterialPageRoute(builder: (context) => const EncuestaFatiga()),
             );
-            if (result is bool) {
-              setState(() => _fatigaAprobada = result);
-            }
+            if (result is bool) setState(() => _fatigaAprobada = result);
           },
         ),
         const SizedBox(height: 16),
-        // Test Reacción
         _buildTestButton(
           text: 'Test Reaccion',
           status: _reaccionAprobada,
@@ -518,13 +510,10 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             );
-            if (result is bool) {
-              setState(() => _reaccionAprobada = result);
-            }
+            if (result is bool) setState(() => _reaccionAprobada = result);
           },
         ),
         const SizedBox(height: 16),
-        // Checklist
         _buildTestButton(
           text: 'Checklist de Ruta',
           status: _checklistAprobado,
@@ -533,9 +522,7 @@ class _HomePageState extends State<HomePage> {
               context,
               MaterialPageRoute(builder: (context) => const ChecklistPage()),
             );
-            if (result is bool) {
-              setState(() => _checklistAprobado = result);
-            }
+            if (result is bool) setState(() => _checklistAprobado = result);
           },
         ),
       ],
@@ -613,9 +600,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // 6. ACTUALIZACIÓN DEL BOTÓN PRINCIPAL
   Widget _buildMainActionButton() {
-    // AHORA DEPENDE DE: Tests Completos Y Selección de Vehículo
     bool habilitado = _puedeIniciarViaje;
 
     return Opacity(
