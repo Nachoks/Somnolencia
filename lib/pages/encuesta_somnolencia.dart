@@ -8,19 +8,52 @@ class EncuestaSomnolencia extends StatefulWidget {
 }
 
 class _EncuestaSomnolenciaState extends State<EncuestaSomnolencia> {
+  // Variable para alternar entre la encuesta y la alerta roja
   bool showSurvey = true;
-  final List<bool?> answers = List.filled(6, null);
 
-  final List<String> questions = [
-    '¿Sientes sueño en este momento?', //NO
-    '¿Te sientes suficientemente alerta para conducir?', //SI
-    '¿Sientes pesadez en los ojos?', //NO
-    '¿Tus movimientos son más lentos o torpes de lo normal?', //NO
-  ];
+  // Listas para manejar la lógica dinámica
+  late List<PreguntaConfig> preguntasActivas;
+  late List<bool?> userAnswers;
 
-  bool get allQuestionsAnswered => answers.every((a) => a != null);
-  // Manejar el envío de la encuesta (validación >4 y alerta)
+  @override
+  void initState() {
+    super.initState();
+    _inicializarPreguntas();
+  }
+
+  // Inicializa las preguntas y las respuestas del usuario
+  void _inicializarPreguntas() {
+    //Banco de Preguntas con su respuesta ideal
+    // true = SÍ es lo seguro, false = NO es lo seguro
+    List<PreguntaConfig> bancoDePreguntas = [
+      PreguntaConfig('¿Sientes sueño en este momento?', false), // Ideal: NO
+      PreguntaConfig(
+        '¿Te sientes suficientemente alerta para conducir?',
+        true,
+      ), // Ideal: SI
+      PreguntaConfig('¿Sientes pesadez en los ojos?', false), // Ideal: NO
+      PreguntaConfig(
+        '¿Tus movimientos son más lentos o torpes de lo normal?',
+        false,
+      ), // Ideal: NO
+    ];
+
+    //Barajamos las preguntas para que salgan en orden aleatorio
+    bancoDePreguntas.shuffle();
+
+    //Asignamos a la variable del estado
+    preguntasActivas = bancoDePreguntas;
+
+    //Preparamos la lista de respuestas del usuario (inicialmente nulas)
+    userAnswers = List.filled(preguntasActivas.length, null);
+  }
+
+  // Verifica si todas las preguntas tienen respuesta (true o false)
+  bool get allQuestionsAnswered => userAnswers.every((a) => a != null);
+
+  // Lógica al enviar la encuesta + validaciones
   void handleSubmit() {
+    // Validación 1: ¿Respondió todo?
     if (!allQuestionsAnswered) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -31,27 +64,42 @@ class _EncuestaSomnolenciaState extends State<EncuestaSomnolencia> {
       return;
     }
 
-    int yesCount = answers.where((a) => a == true).length;
+    // Validación 2: Calcular Puntaje
+    int puntajeCorrecto = 0;
 
-    if (yesCount >= 4) {
-      setState(() => showSurvey = false);
+    for (int i = 0; i < preguntasActivas.length; i++) {
+      // Comparamos la respuesta del usuario con la respuesta ideal de ESA pregunta
+      if (userAnswers[i] == preguntasActivas[i].respuestaIdeal) {
+        puntajeCorrecto++;
+      }
+    }
+
+    // Validación 3: Decisión final
+    // REGLA: Si tiene 2 o más respuestas seguras, aprueba.
+    if (puntajeCorrecto >= 2) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Alerta de Somnolencia: Se detectaron $yesCount respuestas "Sí". Se recomienda descanso.',
+            'Test Aprobado: Tienes $puntajeCorrecto respuestas seguras.',
+          ),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      // Cierra la pantalla y devuelve "true" (aprobado)
+      Navigator.pop(context, true);
+    } else {
+      // Reprueba -> Muestra pantalla roja
+      setState(() => showSurvey = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Alerta: Solo tuviste $puntajeCorrecto respuestas seguras. Descansa.',
           ),
           backgroundColor: Colors.red,
         ),
       );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Encuesta completada correctamente'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
-      Navigator.pop(context, true);
     }
   }
 
@@ -70,7 +118,7 @@ class _EncuestaSomnolenciaState extends State<EncuestaSomnolencia> {
     );
   }
 
-  // --- WIDGETS DESGLOSADOS ---
+  // --- PANTALLA DE ENCUESTA ---
   Widget _buildSurvey() {
     return Container(
       key: const ValueKey('survey'),
@@ -88,13 +136,16 @@ class _EncuestaSomnolenciaState extends State<EncuestaSomnolencia> {
             children: [
               _buildHeader(),
               const SizedBox(height: 24),
+
+              // Generamos las tarjetas dinámicamente según la lista mezclada
               ...List.generate(
-                questions.length,
+                preguntasActivas.length,
                 (i) => Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: _buildQuestionCard(i),
                 ),
               ),
+
               const SizedBox(height: 16),
               _buildSubmitButton(),
             ],
@@ -104,53 +155,17 @@ class _EncuestaSomnolenciaState extends State<EncuestaSomnolencia> {
     );
   }
 
-  // --- WIDGETS AUXILIARES ---
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          const Icon(Icons.bed_outlined, size: 48, color: Color(0xFFF35F34)),
-          const SizedBox(height: 16),
-          const Text(
-            'Encuesta de Somnolencia',
-            style: TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFFF35F34),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Por favor responde las siguientes preguntas sobre tu estado de alerta',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
-          ),
-        ],
-      ),
-    );
-  }
-
-  //Create question card widget
+  // --- TARJETA DE PREGUNTA ---
   Widget _buildQuestionCard(int index) {
+    final pregunta = preguntasActivas[index]; // Obtenemos el objeto actual
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: answers[index] != null
+          color: userAnswers[index] != null
               ? const Color(0xFFF35F34).withOpacity(0.3)
               : Colors.grey.shade300,
           width: 2,
@@ -188,8 +203,9 @@ class _EncuestaSomnolenciaState extends State<EncuestaSomnolencia> {
               ),
               const SizedBox(width: 12),
               Expanded(
+                // Mostramos el texto de la pregunta actual
                 child: Text(
-                  questions[index],
+                  pregunta.texto,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -206,9 +222,9 @@ class _EncuestaSomnolenciaState extends State<EncuestaSomnolencia> {
                 child: _buildAnswerButton(
                   'Sí',
                   Icons.check_circle_outline,
-                  answers[index] == true,
+                  userAnswers[index] == true,
                   () {
-                    setState(() => answers[index] = true);
+                    setState(() => userAnswers[index] = true);
                   },
                 ),
               ),
@@ -217,9 +233,9 @@ class _EncuestaSomnolenciaState extends State<EncuestaSomnolencia> {
                 child: _buildAnswerButton(
                   'No',
                   Icons.cancel_outlined,
-                  answers[index] == false,
+                  userAnswers[index] == false,
                   () {
-                    setState(() => answers[index] = false);
+                    setState(() => userAnswers[index] = false);
                   },
                 ),
               ),
@@ -230,7 +246,7 @@ class _EncuestaSomnolenciaState extends State<EncuestaSomnolencia> {
     );
   }
 
-  // Crear answer button widget
+  // --- BOTÓN DE RESPUESTA INDIVIDUAL ---
   Widget _buildAnswerButton(
     String label,
     IconData icon,
@@ -273,7 +289,7 @@ class _EncuestaSomnolenciaState extends State<EncuestaSomnolencia> {
     );
   }
 
-  // Crear submit button widget
+  // --- BOTÓN ENVIAR ---
   Widget _buildSubmitButton() {
     return Container(
       height: 56,
@@ -325,7 +341,7 @@ class _EncuestaSomnolenciaState extends State<EncuestaSomnolencia> {
     );
   }
 
-  // Alerta widget por alta somnolencia
+  // --- PANTALLA DE ALERTA ---
   Widget _buildAlert() {
     return Container(
       key: const ValueKey('alert'),
@@ -403,7 +419,7 @@ class _EncuestaSomnolenciaState extends State<EncuestaSomnolencia> {
                     ],
                   ),
                   child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.pop(context, false),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,
@@ -435,4 +451,52 @@ class _EncuestaSomnolenciaState extends State<EncuestaSomnolencia> {
       ),
     );
   }
+
+  // --- HEADER (CABECERA) ---
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.bed_outlined, size: 48, color: Color(0xFFF35F34)),
+          const SizedBox(height: 16),
+          const Text(
+            'Encuesta de Somnolencia',
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFF35F34),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Por favor responde las siguientes preguntas sobre tu estado de alerta',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Clase para definir la configuración de cada pregunta
+class PreguntaConfig {
+  final String texto;
+  // Esta variable define qué debe responder el usuario para que sea SEGURO.
+  // Ej: "¿Tienes sueño?" -> respuestaIdeal: false (NO)
+  final bool respuestaIdeal;
+
+  PreguntaConfig(this.texto, this.respuestaIdeal);
 }

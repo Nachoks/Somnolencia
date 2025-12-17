@@ -16,7 +16,7 @@ class LoginPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // 1. Logo o Icono
+                //Logo
                 const Icon(
                   Icons.lock_person_rounded,
                   size: 100,
@@ -24,7 +24,7 @@ class LoginPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
 
-                // 2. Título
+                //Título
                 const Text(
                   'Bienvenido',
                   textAlign: TextAlign.center,
@@ -42,7 +42,7 @@ class LoginPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 40),
 
-                // 3. Campo de Correo (Solo visual)
+                //Campo de Correo
                 TextField(
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
@@ -57,7 +57,7 @@ class LoginPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
 
-                // 4. Campo de Contraseña (Solo visual)
+                //Campo de Contraseña
                 TextField(
                   obscureText: true,
                   decoration: InputDecoration(
@@ -73,7 +73,7 @@ class LoginPage extends StatelessWidget {
 
                 const SizedBox(height: 20),
 
-                // 5. Botón
+                //Botón
                 SizedBox(
                   height: 50,
                   child: ElevatedButton(

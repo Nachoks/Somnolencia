@@ -9,18 +9,54 @@ class EncuestaFatiga extends StatefulWidget {
 
 class _EncuestaFatigaState extends State<EncuestaFatiga> {
   bool showSurvey = true;
-  final List<bool?> answers = List.filled(7, null);
 
-  final List<String> questions = [
-    '¿Has dormido mas de 7 horas en las últimas 24 horas?', //SI
-    '¿Me encuentro físicamente apto para conducir?', //SI
-    '¿Tienes dificultad para concentrarte?', //NO
-    '¿He conducido mas de 5 horas sin descansar agregar?', //NO
-  ];
+  // Listas para manejar la lógica dinámica
+  late List<PreguntaConfig> preguntasActivas;
+  late List<bool?> userAnswers;
 
-  bool get allQuestionsAnswered => answers.every((a) => a != null);
+  @override
+  void initState() {
+    super.initState();
+    _inicializarPreguntas();
+  }
 
+  void _inicializarPreguntas() {
+    // true = SI es lo seguro (Ideal)
+    // false = NO es lo seguro (Ideal)
+    List<PreguntaConfig> bancoDePreguntas = [
+      PreguntaConfig(
+        '¿Has dormido mas de 7 horas en las últimas 24 horas?',
+        true,
+      ), // Ideal: SI
+      PreguntaConfig(
+        '¿Me encuentro físicamente apto para conducir?',
+        true,
+      ), // Ideal: SI
+      PreguntaConfig(
+        '¿Tienes dificultad para concentrarte?',
+        false,
+      ), // Ideal: NO
+      PreguntaConfig(
+        '¿He conducido mas de 5 horas sin descansar?',
+        false,
+      ), // Ideal: NO
+    ];
+
+    //Barajar preguntas
+    bancoDePreguntas.shuffle();
+
+    //Asignar al estado
+    preguntasActivas = bancoDePreguntas;
+
+    //Inicializar respuestas vacías
+    userAnswers = List.filled(preguntasActivas.length, null);
+  }
+
+  bool get allQuestionsAnswered => userAnswers.every((a) => a != null);
+
+  // Lógica al enviar la encuesta + validaciones
   void handleSubmit() {
+    //Validar que respondió todo
     if (!allQuestionsAnswered) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -31,25 +67,39 @@ class _EncuestaFatigaState extends State<EncuestaFatiga> {
       return;
     }
 
-    int yesCount = answers.where((a) => a == true).length;
+    // 2. Calcular Puntaje (Respuestas Seguras)
+    int puntajeCorrecto = 0;
 
-    if (yesCount >= 4) {
-      setState(() => showSurvey = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('ALERTA: $yesCount respuestas "Sí". NO CONDUCIR.'),
-          backgroundColor: Colors.red.shade700,
-        ),
-      );
-    } else {
+    for (int i = 0; i < preguntasActivas.length; i++) {
+      // Comparamos respuesta usuario vs respuesta ideal
+      if (userAnswers[i] == preguntasActivas[i].respuestaIdeal) {
+        puntajeCorrecto++;
+      }
+    }
+
+    //Lógica de Aprobación
+    // Si tiene 2 o más respuestas SEGURAS -> Aprueba
+    if (puntajeCorrecto >= 2) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Encuesta completada correctamente'),
+          content: Text('Encuesta completada correctamente. Estado seguro.'),
           backgroundColor: Colors.green,
           duration: Duration(seconds: 2),
         ),
       );
       Navigator.pop(context, true);
+    } else {
+      // Si tiene menos de 2 seguras -> Alerta
+      setState(() => showSurvey = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'ALERTA: Solo tuviste $puntajeCorrecto respuestas seguras. NO CONDUCIR.',
+          ),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
     }
   }
 
@@ -68,7 +118,7 @@ class _EncuestaFatigaState extends State<EncuestaFatiga> {
     );
   }
 
-  //Creacion de widget de encuesta
+  // --- WIDGET ENCUESTA ---
   Widget _buildSurvey() {
     return Container(
       key: const ValueKey('survey'),
@@ -86,8 +136,9 @@ class _EncuestaFatigaState extends State<EncuestaFatiga> {
             children: [
               _buildHeader(),
               const SizedBox(height: 24),
+              // Generación dinámica de tarjetas
               ...List.generate(
-                questions.length,
+                preguntasActivas.length,
                 (i) => Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: _buildQuestionCard(i),
@@ -102,6 +153,7 @@ class _EncuestaFatigaState extends State<EncuestaFatiga> {
     );
   }
 
+  // --- WIDGET ENCABEZADO ---
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -134,7 +186,7 @@ class _EncuestaFatigaState extends State<EncuestaFatiga> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Responde estas 7 preguntas para evaluar tu nivel de fatiga.',
+            'Responde estas preguntas para evaluar tu nivel de fatiga.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
           ),
@@ -143,14 +195,17 @@ class _EncuestaFatigaState extends State<EncuestaFatiga> {
     );
   }
 
+  // --- WIDGET PREGUNTA ---
   Widget _buildQuestionCard(int index) {
+    final pregunta = preguntasActivas[index];
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: answers[index] != null
+          color: userAnswers[index] != null
               ? const Color(0xFFF35F34).withOpacity(0.3)
               : Colors.grey.shade300,
           width: 2,
@@ -188,8 +243,9 @@ class _EncuestaFatigaState extends State<EncuestaFatiga> {
               ),
               const SizedBox(width: 12),
               Expanded(
+                // Usamos el texto del objeto pregunta
                 child: Text(
-                  questions[index],
+                  pregunta.texto,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -206,9 +262,9 @@ class _EncuestaFatigaState extends State<EncuestaFatiga> {
                 child: _buildAnswerButton(
                   'Sí',
                   Icons.check_circle_outline,
-                  answers[index] == true,
+                  userAnswers[index] == true,
                   () {
-                    setState(() => answers[index] = true);
+                    setState(() => userAnswers[index] = true);
                   },
                 ),
               ),
@@ -217,9 +273,9 @@ class _EncuestaFatigaState extends State<EncuestaFatiga> {
                 child: _buildAnswerButton(
                   'No',
                   Icons.cancel_outlined,
-                  answers[index] == false,
+                  userAnswers[index] == false,
                   () {
-                    setState(() => answers[index] = false);
+                    setState(() => userAnswers[index] = false);
                   },
                 ),
               ),
@@ -230,6 +286,7 @@ class _EncuestaFatigaState extends State<EncuestaFatiga> {
     );
   }
 
+  // --- WIDGET BOTONES Y ALERTA ---
   Widget _buildAnswerButton(
     String label,
     IconData icon,
@@ -272,6 +329,7 @@ class _EncuestaFatigaState extends State<EncuestaFatiga> {
     );
   }
 
+  // --- WIDGET BOTÓN ENVIAR ---
   Widget _buildSubmitButton() {
     return Container(
       height: 56,
@@ -323,8 +381,17 @@ class _EncuestaFatigaState extends State<EncuestaFatiga> {
     );
   }
 
+  // --- WIDGET ALERTA ---
   Widget _buildAlert() {
-    int yesCount = answers.where((a) => a == true).length;
+    // Calculamos cuántas incorrectas (peligrosas) hubo para mostrar en la alerta
+    int segurasCount = 0;
+    if (userAnswers.isNotEmpty) {
+      for (int i = 0; i < preguntasActivas.length; i++) {
+        if (userAnswers[i] == preguntasActivas[i].respuestaIdeal) {
+          segurasCount++;
+        }
+      }
+    }
 
     return Container(
       key: const ValueKey('alert'),
@@ -374,7 +441,7 @@ class _EncuestaFatigaState extends State<EncuestaFatiga> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Se detectaron $yesCount respuestas "Sí". Por tu seguridad, no puedes conducir y se recomienda descanso inmediato.',
+                        'Tus respuestas indican riesgo. Solo tuviste $segurasCount respuestas seguras. Por tu seguridad, no puedes conducir.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 16,
@@ -406,7 +473,7 @@ class _EncuestaFatigaState extends State<EncuestaFatiga> {
                     ],
                   ),
                   child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.pop(context, false),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,
@@ -438,4 +505,11 @@ class _EncuestaFatigaState extends State<EncuestaFatiga> {
       ),
     );
   }
+}
+
+class PreguntaConfig {
+  final String texto;
+  final bool respuestaIdeal;
+
+  PreguntaConfig(this.texto, this.respuestaIdeal);
 }

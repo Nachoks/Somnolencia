@@ -3,13 +3,16 @@ import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 
-// Imports de tus archivos (Asegúrate de que las rutas sean correctas)
+// Imports de tus archivos
 import 'package:somnolence_app/features/evaluacion_conductor/views/test_colores.dart';
 import 'package:somnolence_app/features/evaluacion_conductor/viewsmodels/reaccion_view_model.dart';
 import 'package:somnolence_app/pages/checklist.dart';
 import 'package:somnolence_app/pages/encuesta_fatiga.dart';
 import 'package:somnolence_app/pages/encuesta_somnolencia.dart';
 import 'package:somnolence_app/widgets/logo_appbar.dart';
+
+// 1. Definimos el Enum para el tipo de auto
+enum TipoAuto { empresa, arrendado }
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -27,38 +30,94 @@ class _HomePageState extends State<HomePage> {
   bool _cargandoUbicacion = false;
   String? _direccionGuardada;
 
-  // Estados de los tests
-  bool _somnolenciaCompletada = false;
-  bool _fatigaCompletada = false;
-  bool _reaccionCompletada = false;
-  bool _checklistCompletado = false;
+  // Estado de los Tests
+  bool? _somnolenciaAprobada;
+  bool? _fatigaAprobada;
+  bool? _reaccionAprobada;
+  bool? _checklistAprobado;
+
+  // 2. NUEVO ESTADO: Selección de Vehículo y Descripción
+  TipoAuto? _tipoAutoSeleccionado;
+  final TextEditingController _descripcionController = TextEditingController();
+
+  @override
+  void dispose() {
+    _descripcionController.dispose();
+    super.dispose();
+  }
 
   // --- GETTERS (Lógica computada) ---
-  bool get _todosTestsCompletados =>
-      _somnolenciaCompletada &&
-      _fatigaCompletada &&
-      _reaccionCompletada &&
-      _checklistCompletado;
 
-  int get _testsCompletados {
+  bool get _todosTestsRealizados =>
+      _somnolenciaAprobada != null &&
+      _fatigaAprobada != null &&
+      _reaccionAprobada != null &&
+      _checklistAprobado != null;
+
+  // 3. NUEVA VALIDACIÓN: ¿Está todo listo para viajar?
+  // Requiere: Tests hechos Y vehículo seleccionado
+  bool get _puedeIniciarViaje =>
+      _todosTestsRealizados && _tipoAutoSeleccionado != null;
+
+  int get _testsRealizadosCount {
     int count = 0;
-    if (_somnolenciaCompletada) count++;
-    if (_fatigaCompletada) count++;
-    if (_reaccionCompletada) count++;
-    if (_checklistCompletado) count++;
+    if (_somnolenciaAprobada != null) count++;
+    if (_fatigaAprobada != null) count++;
+    if (_reaccionAprobada != null) count++;
+    if (_checklistAprobado != null) count++;
     return count;
   }
 
-  // --- LÓGICA DE NEGOCIO (GPS) ---
+  // --- LÓGICA DE NEGOCIO (GPS y Registro) ---
+  // --- LÓGICA DE NEGOCIO (GPS y Registro) ---
   Future<void> _registrarInicioViaje() async {
+    // 1. Validaciones: Tests aprobados
+    bool hayReprobados = [
+      _somnolenciaAprobada,
+      _fatigaAprobada,
+      _reaccionAprobada,
+      _checklistAprobado,
+    ].contains(false);
+
+    if (hayReprobados) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            '⚠️ Advertencia: Hay tests con resultado negativo.',
+          ),
+          backgroundColor: Colors.orange.shade800,
+        ),
+      );
+    }
+
+    // 2. Validación: Vehículo seleccionado
+    if (_tipoAutoSeleccionado == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('⚠️ Debes seleccionar un tipo de vehículo'),
+        ),
+      );
+      return;
+    }
+
     setState(() => _cargandoUbicacion = true);
 
     try {
-      // 1. Verificar servicio
+      // -----------------------------------------------------------
+      // PASO 1: CAPTURAR LA HORA EXACTA (Fecha y Hora)
+      // -----------------------------------------------------------
+      final DateTime ahora = DateTime.now();
+
+      // Formato simple para mostrar al usuario (Ej: 14:30)
+      String horaFormateada =
+          "${ahora.hour.toString().padLeft(2, '0')}:${ahora.minute.toString().padLeft(2, '0')}";
+
+      // -----------------------------------------------------------
+      // PASO 2: OBTENER UBICACIÓN GPS
+      // -----------------------------------------------------------
       bool servicioHabilitado = await Geolocator.isLocationServiceEnabled();
       if (!servicioHabilitado) throw 'El GPS está desactivado.';
 
-      // 2. Verificar permisos
       LocationPermission permiso = await Geolocator.checkPermission();
       if (permiso == LocationPermission.denied) {
         permiso = await Geolocator.requestPermission();
@@ -68,12 +127,10 @@ class _HomePageState extends State<HomePage> {
         throw 'Permisos denegados permanentemente.';
       }
 
-      // 3. Obtener ubicación
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
 
-      // 4. Obtener dirección legible (Geocoding)
       List<Placemark> placemarks = await placemarkFromCoordinates(
         position.latitude,
         position.longitude,
@@ -86,15 +143,36 @@ class _HomePageState extends State<HomePage> {
             "${place.thoroughfare} ${place.subThoroughfare}, ${place.locality}";
       }
 
-      // 5. Actualizar estado y notificar
       if (!mounted) return;
       setState(() {
         _direccionGuardada = direccionTexto;
       });
 
+      // -----------------------------------------------------------
+      // PASO 3: CONSOLIDAR DATOS (Aquí tienes todo listo para enviar)
+      // -----------------------------------------------------------
+      final datosFinales = {
+        'fecha_hora': ahora.toIso8601String(), // Formato ISO para base de datos
+        'vehiculo': _tipoAutoSeleccionado!.name,
+        'descripcion': _descripcionController.text,
+        'ubicacion': {
+          'lat': position.latitude,
+          'lng': position.longitude,
+          'direccion': direccionTexto,
+        },
+      };
+
+      print("✅ ENVIANDO DATOS: $datosFinales");
+
+      // -----------------------------------------------------------
+      // PASO 4: FEEDBACK VISUAL CON LA HORA
+      // -----------------------------------------------------------
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('✅ Viaje iniciado en: $direccionTexto'),
+          // Mostramos la hora en el mensaje
+          content: Text(
+            '✅ Viaje iniciado a las $horaFormateada en: $direccionTexto',
+          ),
           backgroundColor: Colors.green,
           duration: const Duration(seconds: 4),
         ),
@@ -153,7 +231,6 @@ class _HomePageState extends State<HomePage> {
 
   // --- WIDGETS ---
 
-  //AppBar
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       leading: const LogoAppbar(),
@@ -169,9 +246,7 @@ class _HomePageState extends State<HomePage> {
         IconButton(
           icon: const Icon(Icons.logout),
           tooltip: 'Cerrar sesión',
-          onPressed: () {
-            // Lógica de logout
-          },
+          onPressed: () {},
         ),
       ],
       flexibleSpace: Container(
@@ -186,7 +261,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Header con info del conductor
   Widget _buildHeaderInfo() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -203,47 +277,86 @@ class _HomePageState extends State<HomePage> {
       ),
       child: Column(
         children: [
-          Icon(Icons.dashboard_rounded, size: 48, color: _primaryColor),
-          const SizedBox(height: 16),
-          Text(
-            '¡Buen día!',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: _primaryColor,
-            ),
-          ),
-          const SizedBox(height: 16),
+          // Info Usuario
+          Icon(Icons.account_circle, size: 48, color: _primaryColor),
+          const SizedBox(height: 10),
           const Text(
             'Juanito Perez',
             style: TextStyle(
-              fontSize: 25,
+              fontSize: 22,
               fontWeight: FontWeight.bold,
-              color: Colors.black,
+              color: Colors.black87,
             ),
           ),
-          const SizedBox(height: 2),
           const Text(
             '20.123.456-7',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: Colors.black,
+              color: Colors.grey,
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Aqui se realizaran los test necesarios antes de partir en ruta',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey.shade700,
-              height: 1.5,
+          const Divider(height: 30),
+
+          // 4. AQUÍ ESTABA EL TEXTO ANTERIOR, AHORA ESTÁ EL FORMULARIO
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Seleccione tipo de vehículo:',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[700],
+              ),
             ),
           ),
+          const SizedBox(height: 10),
+
+          // Opciones de Vehículo (Row para que queden lado a lado o Column si prefieres)
+          Row(
+            children: [
+              Expanded(
+                child: _buildVehicleOptionCard(
+                  label: 'Empresa',
+                  icon: Icons.business_rounded,
+                  value: TipoAuto.empresa,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildVehicleOptionCard(
+                  label: 'Arrendado',
+                  icon: Icons.car_rental,
+                  value: TipoAuto.arrendado,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 15),
+
+          // Campo descripción
+          TextField(
+            controller: _descripcionController,
+            maxLines: 2,
+            style: const TextStyle(fontSize: 14),
+            decoration: InputDecoration(
+              labelText: 'Descripción / Patente (Opcional)',
+              hintText: 'Ej: Camioneta roja...',
+              isDense: true,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Colors.grey.shade300),
+              ),
+              filled: true,
+              fillColor: Colors.grey[50],
+            ),
+          ),
+
           if (_direccionGuardada != null) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 15),
             Container(
+              width: double.infinity,
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: Colors.green.shade50,
@@ -252,9 +365,11 @@ class _HomePageState extends State<HomePage> {
               ),
               child: Text(
                 "📍 Inicio: $_direccionGuardada",
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.green.shade800,
                   fontWeight: FontWeight.bold,
+                  fontSize: 12,
                 ),
               ),
             ),
@@ -264,7 +379,50 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Sección de progreso de tests
+  // 5. WIDGET AUXILIAR PARA LAS TARJETAS DE SELECCIÓN DE AUTO
+  Widget _buildVehicleOptionCard({
+    required String label,
+    required IconData icon,
+    required TipoAuto value,
+  }) {
+    final bool isSelected = _tipoAutoSeleccionado == value;
+    final color = isSelected ? _primaryColor : Colors.grey.shade400;
+    final bgColor = isSelected ? _primaryColor.withOpacity(0.1) : Colors.white;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _tipoAutoSeleccionado = value;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? _primaryColor : Colors.grey.shade300,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? _primaryColor : Colors.grey.shade600,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildProgressSection() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -289,42 +447,35 @@ class _HomePageState extends State<HomePage> {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               Text(
-                '$_testsCompletados/4',
+                '$_testsRealizadosCount/4',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: _todosTestsCompletados ? Colors.green : _primaryColor,
+                  color: _todosTestsRealizados ? Colors.green : _primaryColor,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
           LinearProgressIndicator(
-            value: _testsCompletados / 4,
+            value: _testsRealizadosCount / 4,
             backgroundColor: Colors.grey.shade200,
-            color: _todosTestsCompletados ? Colors.green : _primaryColor,
+            color: _todosTestsRealizados ? Colors.green : _primaryColor,
             minHeight: 8,
             borderRadius: BorderRadius.circular(4),
           ),
-          if (!_todosTestsCompletados) ...[
-            const SizedBox(height: 8),
-            Text(
-              'Completa todos los tests para iniciar el viaje',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-            ),
-          ],
         ],
       ),
     );
   }
 
-  // Lista de tests
   Widget _buildTestsList() {
     return Column(
       children: [
+        // Test Somnolencia
         _buildTestButton(
           text: 'Test Somnolencia',
-          isCompleted: _somnolenciaCompletada,
+          status: _somnolenciaAprobada,
           onPressed: () async {
             final result = await Navigator.push(
               context,
@@ -332,25 +483,31 @@ class _HomePageState extends State<HomePage> {
                 builder: (context) => const EncuestaSomnolencia(),
               ),
             );
-            if (result == true) setState(() => _somnolenciaCompletada = true);
+            if (result is bool) {
+              setState(() => _somnolenciaAprobada = result);
+            }
           },
         ),
         const SizedBox(height: 16),
+        // Test Fatiga
         _buildTestButton(
           text: 'Test Fatiga',
-          isCompleted: _fatigaCompletada,
+          status: _fatigaAprobada,
           onPressed: () async {
             final result = await Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const EncuestaFatiga()),
             );
-            if (result == true) setState(() => _fatigaCompletada = true);
+            if (result is bool) {
+              setState(() => _fatigaAprobada = result);
+            }
           },
         ),
         const SizedBox(height: 16),
+        // Test Reacción
         _buildTestButton(
           text: 'Test Reaccion',
-          isCompleted: _reaccionCompletada,
+          status: _reaccionAprobada,
           onPressed: () async {
             final result = await Navigator.push(
               context,
@@ -361,46 +518,68 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             );
-            if (result == true) setState(() => _reaccionCompletada = true);
+            if (result is bool) {
+              setState(() => _reaccionAprobada = result);
+            }
           },
         ),
         const SizedBox(height: 16),
+        // Checklist
         _buildTestButton(
           text: 'Checklist de Ruta',
-          isCompleted: _checklistCompletado,
+          status: _checklistAprobado,
           onPressed: () async {
             final result = await Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const ChecklistPage()),
             );
-            if (result == true) setState(() => _checklistCompletado = true);
+            if (result is bool) {
+              setState(() => _checklistAprobado = result);
+            }
           },
         ),
       ],
     );
   }
 
-  // Botón individual de test
   Widget _buildTestButton({
     required String text,
-    required bool isCompleted,
+    required bool? status,
     required VoidCallback onPressed,
   }) {
+    Color bgColor;
+    Color shadowColor;
+    IconData icon;
+    String finalText = text;
+
+    if (status == null) {
+      bgColor = _primaryColor;
+      shadowColor = _primaryColor;
+      icon = Icons.arrow_forward_rounded;
+    } else if (status == true) {
+      bgColor = Colors.green;
+      shadowColor = Colors.green;
+      icon = Icons.check_circle;
+      finalText = '$text ✓';
+    } else {
+      bgColor = Colors.red;
+      shadowColor = Colors.red;
+      icon = Icons.cancel;
+      finalText = '$text ✕';
+    }
+
     return Container(
       width: double.infinity,
       height: 56,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isCompleted
-              ? [Colors.green, Colors.green.shade700]
-              : [_primaryColor, _secondaryColor],
-        ),
+        gradient: status == null
+            ? LinearGradient(colors: [_primaryColor, _secondaryColor])
+            : null,
+        color: status != null ? bgColor : null,
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: (isCompleted ? Colors.green : _primaryColor).withOpacity(
-              0.4,
-            ),
+            color: shadowColor.withOpacity(0.4),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -418,13 +597,10 @@ class _HomePageState extends State<HomePage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              isCompleted ? Icons.check_circle : Icons.arrow_forward_rounded,
-              color: Colors.white,
-            ),
+            Icon(icon, color: Colors.white),
             const SizedBox(width: 8),
             Text(
-              isCompleted ? '$text ✓' : text,
+              finalText,
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -437,21 +613,24 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Botón principal de acción
+  // 6. ACTUALIZACIÓN DEL BOTÓN PRINCIPAL
   Widget _buildMainActionButton() {
+    // AHORA DEPENDE DE: Tests Completos Y Selección de Vehículo
+    bool habilitado = _puedeIniciarViaje;
+
     return Opacity(
-      opacity: _todosTestsCompletados ? 1.0 : 0.5,
+      opacity: habilitado ? 1.0 : 0.5,
       child: Container(
         width: double.infinity,
         height: 56,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: _todosTestsCompletados
+            colors: habilitado
                 ? [_primaryColor, _secondaryColor]
                 : [Colors.grey.shade400, Colors.grey.shade500],
           ),
           borderRadius: BorderRadius.circular(28),
-          boxShadow: _todosTestsCompletados
+          boxShadow: habilitado
               ? [
                   BoxShadow(
                     color: _primaryColor.withOpacity(0.4),
@@ -462,7 +641,7 @@ class _HomePageState extends State<HomePage> {
               : [],
         ),
         child: ElevatedButton(
-          onPressed: _todosTestsCompletados && !_cargandoUbicacion
+          onPressed: habilitado && !_cargandoUbicacion
               ? _registrarInicioViaje
               : null,
           style: ElevatedButton.styleFrom(
@@ -486,16 +665,16 @@ class _HomePageState extends State<HomePage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      _todosTestsCompletados
-                          ? Icons.location_on
-                          : Icons.lock_outline,
+                      habilitado ? Icons.location_on : Icons.lock_outline,
                       color: Colors.white,
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      _todosTestsCompletados
+                      habilitado
                           ? 'Registrar Inicio del Viaje'
-                          : 'Completa los tests primero',
+                          : (_tipoAutoSeleccionado == null
+                                ? 'Seleccione vehículo'
+                                : 'Completa los tests primero'),
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,

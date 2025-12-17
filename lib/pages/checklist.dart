@@ -16,20 +16,17 @@ class ChecklistPage extends StatefulWidget {
 }
 
 class _ChecklistPageState extends State<ChecklistPage> {
-  // 2. Lista de verificaciones (Edita los títulos según tu necesidad)
+  // 2. Lista de verificaciones
   final List<CheckItem> _items = [
     CheckItem(title: 'Licencia de connduccion vigente'),
     CheckItem(title: 'Cedula de identidad'),
     CheckItem(title: 'Permiso de Circulacion vigente'),
     CheckItem(title: 'Certificado de Revisión Técnica'),
-    CheckItem(title: 'Certificado de inscripcion (Padron)'), //Sacar
-    CheckItem(title: 'SOAP vigente'), //Sacar
     CheckItem(title: 'Buen estado de neumaticos'),
     CheckItem(title: 'Luces funcionando correctamente'),
     CheckItem(title: 'Sistema de visibilidad (limpiaparabrisas, espejos)'),
     CheckItem(title: 'Extintor y botiquin de primeros auxilios'),
     CheckItem(title: 'Chaleco reflectande y/o triangulos de seguridad'),
-    CheckItem(title: 'Rueda de repuesto'), //Sacar
     CheckItem(title: 'Gato y llave de ruedas'),
   ];
 
