@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
@@ -89,13 +91,18 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
+    // Activar spinner de carga
     setState(() => _cargandoUbicacion = true);
 
     try {
+      // OBTENCIÓN DE DATOS (GPS Y HORA)
       final DateTime ahora = DateTime.now();
+
+      // Formato bonito para mostrar al usuario (Ej: 14:05)
       String horaFormateada =
           "${ahora.hour.toString().padLeft(2, '0')}:${ahora.minute.toString().padLeft(2, '0')}";
 
+      // Permisos y obtención de GPS
       bool servicioHabilitado = await Geolocator.isLocationServiceEnabled();
       if (!servicioHabilitado) throw 'El GPS está desactivado.';
 
@@ -108,10 +115,12 @@ class _HomePageState extends State<HomePage> {
         throw 'Permisos denegados permanentemente.';
       }
 
+      // Obtener posición exacta
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
 
+      // Obtener dirección legible (Calle, Ciudad)
       List<Placemark> placemarks = await placemarkFromCoordinates(
         position.latitude,
         position.longitude,
@@ -127,32 +136,70 @@ class _HomePageState extends State<HomePage> {
       if (!mounted) return;
       setState(() => _direccionGuardada = direccionTexto);
 
-      final datosFinales = {
-        'fecha_hora': ahora.toIso8601String(),
-        'vehiculo': _tipoAutoSeleccionado!.name,
+      // PREPARAR PAQUETE PARA LARAVEL (JSON)
+      final nombre = widget.usuario?['nombre_completo'] ?? 'Usuario';
+      final rut = widget.usuario?['rut'] ?? 'Sin RUT';
+      final Map<String, dynamic> datosViaje = {
+        'conductor': nombre, // Aquí pones la variable de tu usuario real
+        'rut': rut,
+        'fecha_hora': ahora.toString(), // Laravel lo formateará
+        'tipo_vehiculo': _tipoAutoSeleccionado!.name,
         'descripcion': _descripcionController.text,
         'ubicacion': {
-          'lat': position.latitude,
-          'lng': position.longitude,
+          'latitud': position.latitude,
+          'longitud': position.longitude,
           'direccion': direccionTexto,
+        },
+        'tests': {
+          'somnolencia': _somnolenciaAprobada ?? false,
+          'fatiga': _fatigaAprobada ?? false,
+          'reaccion': _reaccionAprobada ?? false,
+          'checklist': _checklistAprobado ?? false,
         },
       };
 
-      print("✅ ENVIANDO DATOS: $datosFinales");
+      print("📤 Enviando a Laravel: $datosViaje");
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '✅ Viaje iniciado a las $horaFormateada en: $direccionTexto',
-          ),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 4),
-        ),
+      // CONEXIÓN CON EL SERVIDOR
+      final url = Uri.parse('http://192.168.0.45:8090/api/viajes/registrar');
+
+      final response = await http.post(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: jsonEncode(datosViaje),
       );
+      if (response.statusCode == 200) {
+        print("✅ Éxito: ${response.body}");
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '✅ Viaje registrado y correo enviado a las $horaFormateada',
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 5),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        _descripcionController.clear();
+      } else {
+        // ERROR: Laravel falló (quizás contraseña de correo mal, o servidor caído)
+        print("❌ Error Servidor: ${response.body}");
+        throw "El servidor respondió error (${response.statusCode})";
+      }
     } catch (e) {
+      // ERROR DE CONEXIÓN (WiFi apagado, IP incorrecta, etc.)
+      print("❌ Excepción: $e");
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
       );
     } finally {
       if (mounted) {
@@ -261,7 +308,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildHeaderInfo() {
-    // CORRECCIÓN: Acceso seguro a los datos del usuario
     final nombre = widget.usuario?['nombre_completo'] ?? 'Usuario';
     final rut = widget.usuario?['rut'] ?? 'Sin RUT';
     final empresa = widget.usuario?['empresa']?['nombre'] ?? 'Sin empresa';
