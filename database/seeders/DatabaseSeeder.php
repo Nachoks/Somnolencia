@@ -13,17 +13,17 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Crear Empresa
+        //Crear Empresa
         $empresa = Empresa::create([
             'nombre_empresa' => 'Arenas & Arenas',
             'rol_empresa' => '76.123.456-7',
         ]);
 
-        // 2. Crear Tipos de Usuario (Roles)
+        //Crear Tipos de Usuario (Roles)
         $rolAdmin = TipoUsuario::create(['tipo_usuario' => 'Administrador']);
         $rolConductor = TipoUsuario::create(['tipo_usuario' => 'Conductor']);
 
-        // 3. Crear Personal
+        //Crear Personal
         $personal1 = Personal::create([
             'nombre_personal' => 'Juanito',
             'apellido_personal' => 'Perez',
@@ -38,7 +38,7 @@ class DatabaseSeeder extends Seeder
             'id_empresa' => $empresa->id_empresa,
         ]);
 
-        // 4. Crear Usuarios
+        //Crear Usuarios
         $usuario1 = User::create([
             'nombre_usuario' => 'juanito',
             'password' => Hash::make('123456'),
@@ -51,7 +51,7 @@ class DatabaseSeeder extends Seeder
             'id_personal' => $personal2->id_personal,
         ]);
 
-        // 5. Asignar Roles
+        // Asignar Roles
         // Juanito es Conductor
         $usuario1->roles()->attach($rolConductor->id_tipo_usuario);
         

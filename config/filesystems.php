@@ -59,6 +59,11 @@ return [
             'throw' => false,
             'report' => false,
         ],
+        'disco_reportes' => [
+            'driver' => 'local',
+            'root' => 'C:\Users\Administrator\Desktop\Reporte Viajes',
+            'throw' => false,
+        ]
 
     ],
 
