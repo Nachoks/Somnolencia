@@ -27,7 +27,7 @@ class ReporteViajeMail extends Mailable
     public function build()
     {
         return $this->subject('Nuevo Reporte de Viaje - ' . ($this->datos['conductor'] ?? 'Conductor'))
-                    ->view('emails.nuevo_viaje') // Crearemos esta vista simple en el Paso 3
+                    ->view('emails.nuevo_viaje') 
                     ->attachData($this->pdfOutput, $this->nombreArchivo, [
                         'mime' => 'application/pdf',
                     ]);

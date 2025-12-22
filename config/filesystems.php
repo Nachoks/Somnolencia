@@ -61,7 +61,7 @@ return [
         ],
         'disco_reportes' => [
             'driver' => 'local',
-            'root' => 'C:\Users\Administrator\Desktop\Reporte Viajes',
+            'root' => '\\\\Iaanas-01\\sig - registros\\009 PREVENCION DE RIESGOS\\Registros de Control de Conducción',
             'throw' => false,
         ]
 
