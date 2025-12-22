@@ -9,17 +9,24 @@ class Empresa extends Model
 {
     use HasFactory;
 
-    protected $table = 'empresa';      // Tu nombre de tabla singular
-    protected $primaryKey = 'id_empresa'; // Tu PK personalizada
+    protected $table = 'empresa';
+    protected $primaryKey = 'id_empresa';
 
     protected $fillable = [
         'nombre_empresa',
-        'rol_empresa', // Asumo que esto es el RUT o GIRO
+        'rol_empresa',
     ];
 
-    // Relación: Una empresa tiene mucho personal
     public function personal()
     {
         return $this->hasMany(Personal::class, 'id_empresa', 'id_empresa');
+    }
+
+    // --- AGREGAR ESTO ---
+    // Relación: Una empresa tiene muchos vehículos
+    public function vehiculos()
+    {
+        // hasMany(ModeloHijo, 'llave_foranea_en_hijo', 'llave_primaria_local')
+        return $this->hasMany(Vehiculo::class, 'id_empresa', 'id_empresa');
     }
 }

@@ -4,7 +4,18 @@
     <title>Reporte de Viaje</title>
     <style>
         body { font-family: sans-serif; font-size: 14px; }
-        .header { text-align: center; margin-bottom: 20px; }
+        
+        /* --- ESTILO FALTANTE PARA EL LOGO --- */
+        .logo {
+            position: absolute; /* Lo saca del flujo normal */
+            top: 0;             /* Pegado arriba */
+            right: 0;           /* Pegado a la derecha (cambia a 'left: 0' para izquierda) */
+            width: 120px;       /* Ajusta el tamaño según necesites */
+            height: auto;
+        }
+        /* ------------------------------------ */
+
+        .header { text-align: center; margin-bottom: 20px; margin-top: 20px; }
         .section { margin-bottom: 15px; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
         .approved { color: green; font-weight: bold; }
         .rejected { color: red; font-weight: bold; }
@@ -13,6 +24,9 @@
     </style>
 </head>
 <body>
+    
+    <img src="{{ public_path('images/logo.png') }}" class="logo" alt="Logo">
+
     <div class="header">
         <h1>Reporte de Inicio de Viaje</h1>
         <p>Inversiones Arenas & Arenas</p>
@@ -43,7 +57,6 @@
             <div style="margin-top: 10px; padding: 10px; background-color: #f8f9fa; border: 1px dashed #ccc; text-align: center;">
                 <p style="color: grey; font-style: italic; margin: 0;">(Vista previa del mapa no disponible)</p>
                 
-                {{-- ESTA PARTE ES LA QUE MUESTRA EL ERROR EN ROJO --}}
                 @if(isset($datos['mapa_error']))
                     <p style="color: red; font-size: 11px; font-weight: bold; margin-top: 5px;">
                         ⚠️ DETALLE TÉCNICO: {{ $datos['mapa_error'] }}
@@ -51,7 +64,7 @@
                 @endif
             </div>
         @endif
-        </div>
+    </div>
 
     <div class="section">
         <h3>Estado de Tests</h3>
