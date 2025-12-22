@@ -126,4 +126,31 @@ class ApiService {
     }
     return null;
   }
+
+  static Future<List<String>> obtenerPatentes() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token'); // Asumo que guardas el token así
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/vehiculos/patentes'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // La respuesta es una lista directa: ["PATENTE1", "PATENTE2"]
+        List<dynamic> data = jsonDecode(response.body);
+        return data.cast<String>(); // Convertir a List<String>
+      } else {
+        print('Error al cargar patentes: ${response.body}');
+        return [];
+      }
+    } catch (e) {
+      print('Error de conexión: $e');
+      return [];
+    }
+  }
 }

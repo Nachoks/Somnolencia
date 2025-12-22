@@ -27,13 +27,8 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final Color _primaryColor = const Color(0xFFF35F34);
   final Color _secondaryColor = const Color.fromARGB(255, 185, 120, 104);
-  final List<String> _patentesDisponibles = [
-    'AA-BB-12',
-    'CC-DD-34',
-    'EE-FF-56',
-    'GG-HH-78',
-    'II-JJ-90',
-  ];
+  final List<String> _patentesDisponibles = [];
+  bool _cargandoPatentes = false;
   TipoAuto? _tipoAutoSeleccionado;
   String? _patenteSeleccionada; // Para vehículo de empresa
   final TextEditingController _patenteArrendadoController =
@@ -46,6 +41,39 @@ class _HomePageState extends State<HomePage> {
   bool? _fatigaAprobada;
   bool? _reaccionAprobada;
   bool? _checklistAprobado;
+
+  //Variable para guardar el detalle del checklist
+  List<dynamic>? _checklistDetalles;
+  @override
+  void initState() {
+    super.initState();
+    // Llamamos a la función al iniciar la pantalla
+    _cargarPatentesDesdeBD();
+  }
+
+  Future<void> _cargarPatentesDesdeBD() async {
+    setState(() => _cargandoPatentes = true);
+
+    try {
+      // Asumiendo que agregaste el método obtenerPatentes en tu ApiService
+      // como vimos en la respuesta anterior
+      final patentes = await ApiService.obtenerPatentes();
+
+      if (mounted) {
+        setState(() {
+          // Como tu lista es 'final', usamos clear y addAll
+          _patentesDisponibles.clear();
+          _patentesDisponibles.addAll(patentes);
+        });
+      }
+    } catch (e) {
+      print('Error al cargar patentes: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _cargandoPatentes = false);
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -99,7 +127,7 @@ class _HomePageState extends State<HomePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text(
-            '⚠️ Advertencia: Hay tests con resultado negativo.',
+            '⚠️ Advertencia: Hay tests con observaciones o reprobados.',
           ),
           backgroundColor: Colors.orange.shade800,
         ),
@@ -189,13 +217,15 @@ class _HomePageState extends State<HomePage> {
           'fatiga': _fatigaAprobada ?? false,
           'reaccion': _reaccionAprobada ?? false,
           'checklist': _checklistAprobado ?? false,
+          // --- NUEVO: Enviamos el detalle ---
+          'checklist_detalle': _checklistDetalles ?? [],
         },
       };
 
       print("📤 Enviando a Laravel: $datosViaje");
 
       // CONEXIÓN CON EL SERVIDOR
-      final url = Uri.parse('http://192.168.0.25:8090/api/viajes/registrar');
+      final url = Uri.parse('${ApiService.baseUrl}/viajes/registrar');
 
       final response = await http.post(
         url,
@@ -212,6 +242,15 @@ class _HomePageState extends State<HomePage> {
           _patenteArrendadoController.clear();
           _descripcionController.clear();
           _tipoAutoSeleccionado = null;
+
+          _somnolenciaAprobada = null;
+          _fatigaAprobada = null;
+          _reaccionAprobada = null;
+          _checklistAprobado = null;
+
+          _checklistDetalles = null;
+          _direccionGuardada = null;
+          // Opcional: resetear tests también si es necesario
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -452,7 +491,13 @@ class _HomePageState extends State<HomePage> {
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
                   isExpanded: true,
-                  hint: const Text('Seleccionar patente'),
+                  hint: _cargandoPatentes
+                      ? const Text(
+                          'Cargando patentes...',
+                          style: TextStyle(color: Colors.orange),
+                        )
+                      : const Text('Seleccionar patente'),
+                  disabledHint: const Text('Cargando...'),
                   value: _patenteSeleccionada,
                   icon: const Icon(Icons.arrow_drop_down),
                   items: _patentesDisponibles.map((String patente) {
@@ -714,6 +759,8 @@ class _HomePageState extends State<HomePage> {
           },
         ),
         const SizedBox(height: 16),
+
+        // --- MODIFICADO: Capturamos el mapa de detalles del Checklist ---
         _buildTestButton(
           text: 'Checklist de Ruta',
           status: _checklistAprobado,
@@ -722,7 +769,15 @@ class _HomePageState extends State<HomePage> {
               context,
               MaterialPageRoute(builder: (context) => const ChecklistPage()),
             );
-            if (result is bool) setState(() => _checklistAprobado = result);
+
+            if (result is Map<String, dynamic>) {
+              setState(() {
+                _checklistAprobado = result['aprobado'];
+                _checklistDetalles = result['detalles'];
+              });
+            } else if (result is bool) {
+              setState(() => _checklistAprobado = result);
+            }
           },
         ),
       ],
@@ -749,10 +804,12 @@ class _HomePageState extends State<HomePage> {
       icon = Icons.check_circle;
       finalText = '$text ✓';
     } else {
-      bgColor = Colors.red;
-      shadowColor = Colors.red;
-      icon = Icons.cancel;
-      finalText = '$text ✕';
+      // Usamos Naranja/Alerta en vez de Rojo/X si está incompleto o reprobado
+      // Esto da mejor feedback de "Guardado con observaciones"
+      bgColor = Colors.orange;
+      shadowColor = Colors.orange;
+      icon = Icons.warning_amber_rounded;
+      finalText = '$text ⚠';
     }
 
     return Container(

@@ -9,10 +9,13 @@ class TestColoresPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        const double margenLateral = 20.0; // Espacio a los lados
+        const double margenSuperior = 160.0; // Espacio para el Panel de arriba
+        const double margenInferior = 100.0;
         final viewModel = context.read<ReaccionViewModel>();
         viewModel.establecerTamanoPantalla(
-          constraints.maxWidth,
-          constraints.maxHeight,
+          constraints.maxWidth - (margenLateral * 2),
+          constraints.maxHeight - margenSuperior - margenInferior,
         );
 
         return Scaffold(
@@ -28,8 +31,8 @@ class TestColoresPage extends StatelessWidget {
                   // Área de estímulos
                   ...vm.estimulosActivos.map(
                     (estimulo) => Positioned(
-                      left: estimulo.x,
-                      top: estimulo.y,
+                      left: estimulo.x + margenLateral,
+                      top: estimulo.y + margenSuperior,
                       child: GestureDetector(
                         onTap: () => vm.manejarToqueEstimulo(estimulo.id),
                         child: _CirculoWidget(color: estimulo.color),
@@ -42,10 +45,16 @@ class TestColoresPage extends StatelessWidget {
 
                   // Botón de inicio/resultados
                   if (!vm.estaCorriendo)
-                    Center(
-                      child: vm.targetsTocados > 0
-                          ? _buildBotonResultados(context, vm)
-                          : _buildBotonIniciar(vm),
+                    Positioned(
+                      // Usamos Positioned para asegurar que quede abajo o centrado sin molestar
+                      bottom: 40,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: vm.targetsTocados > 0
+                            ? _buildBotonResultados(context, vm)
+                            : _buildBotonIniciar(vm),
+                      ),
                     ),
                 ],
               );

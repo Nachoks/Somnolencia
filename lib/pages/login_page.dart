@@ -88,10 +88,10 @@ class _LoginPageState extends State<LoginPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Logo
-                  const Icon(
-                    Icons.local_shipping_rounded,
-                    size: 100,
-                    color: Color(0xFFF35F34),
+                  const Image(
+                    image: AssetImage('assets/images/LOGO.png'),
+                    width: 100,
+                    height: 100,
                   ),
                   const SizedBox(height: 20),
 

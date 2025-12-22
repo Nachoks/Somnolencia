@@ -38,18 +38,29 @@ class _ChecklistPageState extends State<ChecklistPage> {
       _items.where((item) => item.isChecked).length / _items.length;
 
   void _submitForm() {
-    // Muestra un SnackBar de éxito
+    // Recopilamos el detalle para enviarlo
+    List<Map<String, dynamic>> detalleChecklist = _items.map((item) {
+      return {'item': item.title, 'marcado': item.isChecked};
+    }).toList();
+
+    // Muestra un SnackBar diferente según si está completo o incompleto
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('¡Verificación completa! Volviendo...'),
-        backgroundColor: Colors.green,
+      SnackBar(
+        content: Text(
+          allChecked
+              ? '¡Verificación completa!'
+              : 'Guardando con observaciones...',
+        ),
+        backgroundColor: allChecked ? Colors.green : Colors.orange,
       ),
     );
 
     // Navegación para volver a la pantalla anterior (POP) y DEVOLVER 'true'
-    Future.delayed(const Duration(milliseconds: 1000), () {
-      // Devolvemos 'true' para indicar a HomePage que el checklist se completó.
-      Navigator.pop(context, true);
+    Future.delayed(const Duration(milliseconds: 500), () {
+      Navigator.pop(context, {
+        'aprobado': allChecked, // Será true solo si marcó todo
+        'detalles': detalleChecklist, // Lista con qué marcó y qué no
+      });
     });
   }
 
@@ -100,8 +111,8 @@ class _ChecklistPageState extends State<ChecklistPage> {
                   Padding(
                     padding: const EdgeInsets.only(top: 8.0),
                     child: Text(
-                      "Debes marcar todas las opciones para continuar.",
-                      style: TextStyle(color: Colors.red[400], fontSize: 12),
+                      "Nota: Los ítems no marcados se registrarán como pendientes.",
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
                     ),
                   ),
               ],
@@ -146,20 +157,24 @@ class _ChecklistPageState extends State<ChecklistPage> {
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                onPressed: allChecked ? _submitForm : null,
+                // SIEMPRE habilitado (llamamos a _submitForm directamente)
+                onPressed: _submitForm,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF35F34),
+                  // Cambiamos el color si está incompleto para dar feedback visual
+                  backgroundColor: allChecked
+                      ? const Color(0xFFF35F34)
+                      : Colors.orange,
                   foregroundColor: Colors.white,
-                  disabledBackgroundColor:
-                      Colors.grey[300], // Color cuando está bloqueado
-                  disabledForegroundColor: Colors.grey[500],
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  elevation: allChecked ? 4 : 0,
+                  elevation: 4,
                 ),
                 child: Text(
-                  allChecked ? 'CONFIRMAR Y VOLVER' : 'PENDIENTE',
+                  allChecked
+                      ? 'CONFIRMAR Y VOLVER'
+                      : 'CONFIRMAR CON OBSERVACIONES',
+                  textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
