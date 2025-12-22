@@ -14,7 +14,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Aplicación de Somnolencia',
+      title: 'Registro Control de Conduccion 1.0',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFF35F34)),
         useMaterial3: true,
@@ -77,7 +77,7 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
             const SizedBox(height: 20),
             const Text(
-              'Arenas & Arenas',
+              'Inversiones Arenas & Arenas',
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,

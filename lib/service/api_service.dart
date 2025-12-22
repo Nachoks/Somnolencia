@@ -4,9 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   // IMPORTANTE: Cambia esta URL según tu configuración
-  // Para Android Emulator usa: http://10.0.2.2:8000
-  // Para dispositivo físico usa tu IP local: http://192.168.1.X:8000
-  static const String baseUrl = 'http://192.168.0.45:8090/api';
+  static const String baseUrl = 'http://192.168.0.25:8090/api';
 
   // LOGIN
   static Future<Map<String, dynamic>> login(

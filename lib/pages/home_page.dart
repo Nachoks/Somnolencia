@@ -161,7 +161,7 @@ class _HomePageState extends State<HomePage> {
       print("📤 Enviando a Laravel: $datosViaje");
 
       // CONEXIÓN CON EL SERVIDOR
-      final url = Uri.parse('http://192.168.0.45:8090/api/viajes/registrar');
+      final url = Uri.parse('http://192.168.0.25:8090/api/viajes/registrar');
 
       final response = await http.post(
         url,
