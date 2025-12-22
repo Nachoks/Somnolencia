@@ -27,7 +27,18 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final Color _primaryColor = const Color(0xFFF35F34);
   final Color _secondaryColor = const Color.fromARGB(255, 185, 120, 104);
-
+  final List<String> _patentesDisponibles = [
+    'AA-BB-12',
+    'CC-DD-34',
+    'EE-FF-56',
+    'GG-HH-78',
+    'II-JJ-90',
+  ];
+  TipoAuto? _tipoAutoSeleccionado;
+  String? _patenteSeleccionada; // Para vehículo de empresa
+  final TextEditingController _patenteArrendadoController =
+      TextEditingController();
+  final TextEditingController _descripcionController = TextEditingController();
   bool _cargandoUbicacion = false;
   String? _direccionGuardada;
 
@@ -36,12 +47,10 @@ class _HomePageState extends State<HomePage> {
   bool? _reaccionAprobada;
   bool? _checklistAprobado;
 
-  TipoAuto? _tipoAutoSeleccionado;
-  final TextEditingController _descripcionController = TextEditingController();
-
   @override
   void dispose() {
     _descripcionController.dispose();
+    _patenteArrendadoController.dispose();
     super.dispose();
   }
 
@@ -51,8 +60,23 @@ class _HomePageState extends State<HomePage> {
       _reaccionAprobada != null &&
       _checklistAprobado != null;
 
-  bool get _puedeIniciarViaje =>
-      _todosTestsRealizados && _tipoAutoSeleccionado != null;
+  bool get _puedeIniciarViaje {
+    // Validar tests
+    if (!_todosTestsRealizados) return false;
+
+    // Validar vehículo seleccionado
+    if (_tipoAutoSeleccionado == null) return false;
+
+    // Validar patente según tipo de vehículo
+    if (_tipoAutoSeleccionado == TipoAuto.empresa) {
+      return _patenteSeleccionada != null; // Debe tener patente seleccionada
+    } else {
+      return _patenteArrendadoController.text.trim().length == 6 &&
+          _patenteArrendadoController.text
+              .trim()
+              .isNotEmpty; // Debe ingresar patente
+    }
+  }
 
   int get _testsRealizadosCount {
     int count = 0;
@@ -101,6 +125,8 @@ class _HomePageState extends State<HomePage> {
       // Formato bonito para mostrar al usuario (Ej: 14:05)
       String horaFormateada =
           "${ahora.hour.toString().padLeft(2, '0')}:${ahora.minute.toString().padLeft(2, '0')}";
+      String fechaFormateada =
+          "${ahora.day.toString().padLeft(2, '0')}-${ahora.month.toString().padLeft(2, '0')}-${ahora.year}";
 
       // Permisos y obtención de GPS
       bool servicioHabilitado = await Geolocator.isLocationServiceEnabled();
@@ -139,12 +165,20 @@ class _HomePageState extends State<HomePage> {
       // PREPARAR PAQUETE PARA LARAVEL (JSON)
       final nombre = widget.usuario?['nombre_completo'] ?? 'Usuario';
       final rut = widget.usuario?['rut'] ?? 'Sin RUT';
+      final String patenteVehiculo = _tipoAutoSeleccionado == TipoAuto.empresa
+          ? _patenteSeleccionada!
+          : _patenteArrendadoController.text.trim().toUpperCase();
+
       final Map<String, dynamic> datosViaje = {
         'conductor': nombre, // Aquí pones la variable de tu usuario real
         'rut': rut,
-        'fecha_hora': ahora.toString(), // Laravel lo formateará
+        'fecha': fechaFormateada,
+        'hora': horaFormateada, // Laravel lo formateará
         'tipo_vehiculo': _tipoAutoSeleccionado!.name,
-        'descripcion': _descripcionController.text,
+        'patente': patenteVehiculo,
+        'descripcion': _descripcionController.text.trim().isEmpty
+            ? 'Sin descripción'
+            : _descripcionController.text.trim(),
         'ubicacion': {
           'latitud': position.latitude,
           'longitud': position.longitude,
@@ -173,7 +207,12 @@ class _HomePageState extends State<HomePage> {
       );
       if (response.statusCode == 200) {
         print("✅ Éxito: ${response.body}");
-
+        setState(() {
+          _patenteSeleccionada = null;
+          _patenteArrendadoController.clear();
+          _descripcionController.clear();
+          _tipoAutoSeleccionado = null;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -351,6 +390,7 @@ class _HomePageState extends State<HomePage> {
           ),
           const Divider(height: 30),
 
+          // TÍTULO SECCIÓN VEHÍCULO
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
@@ -364,6 +404,7 @@ class _HomePageState extends State<HomePage> {
           ),
           const SizedBox(height: 10),
 
+          // SELECTOR DE TIPO
           Row(
             children: [
               Expanded(
@@ -386,23 +427,129 @@ class _HomePageState extends State<HomePage> {
 
           const SizedBox(height: 15),
 
-          TextField(
-            controller: _descripcionController,
-            maxLines: 2,
-            style: const TextStyle(fontSize: 14),
-            decoration: InputDecoration(
-              labelText: 'Descripción / Patente (Opcional)',
-              hintText: 'Ej: Camioneta roja...',
-              isDense: true,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: Colors.grey.shade300),
+          // MOSTRAR SELECTOR DE PATENTE SEGÚN TIPO
+          if (_tipoAutoSeleccionado == TipoAuto.empresa) ...[
+            // DROPDOWN PARA VEHÍCULOS DE EMPRESA
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Seleccione patente del vehículo:',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[700],
+                ),
               ),
-              filled: true,
-              fillColor: Colors.grey[50],
             ),
-          ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  isExpanded: true,
+                  hint: const Text('Seleccionar patente'),
+                  value: _patenteSeleccionada,
+                  icon: const Icon(Icons.arrow_drop_down),
+                  items: _patentesDisponibles.map((String patente) {
+                    return DropdownMenuItem<String>(
+                      value: patente,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.directions_car,
+                            size: 20,
+                            color: _primaryColor,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(patente, style: const TextStyle(fontSize: 16)),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _patenteSeleccionada = newValue;
+                    });
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ] else if (_tipoAutoSeleccionado == TipoAuto.arrendado) ...[
+            // TEXTFIELD PARA VEHÍCULOS ARRENDADOS
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Ingrese patente del vehículo arrendado:',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[700],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _patenteArrendadoController,
+              onChanged: (value) {
+                setState(() {});
+              },
+              textCapitalization: TextCapitalization.characters,
+              maxLength: 6,
+              style: const TextStyle(fontSize: 16),
+              decoration: InputDecoration(
+                hintText: 'Ej: ABCD-12',
+                prefixIcon: Icon(Icons.directions_car, color: _primaryColor),
+                counterText: '',
+                isDense: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                filled: true,
+                fillColor: Colors.grey[50],
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
 
+          // CAMPO DESCRIPCIÓN (OPCIONAL)
+          if (_tipoAutoSeleccionado != null) ...[
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Descripción adicional (Opcional):',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[700],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _descripcionController,
+              maxLines: 2,
+              style: const TextStyle(fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'Ej: Camioneta roja, carga refrigerada...',
+                isDense: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                filled: true,
+                fillColor: Colors.grey[50],
+              ),
+            ),
+          ],
+
+          // UBICACIÓN GUARDADA
           if (_direccionGuardada != null) ...[
             const SizedBox(height: 15),
             Container(
@@ -439,7 +586,14 @@ class _HomePageState extends State<HomePage> {
     final bgColor = isSelected ? _primaryColor.withOpacity(0.1) : Colors.white;
 
     return GestureDetector(
-      onTap: () => setState(() => _tipoAutoSeleccionado = value),
+      onTap: () {
+        setState(() {
+          _tipoAutoSeleccionado = value;
+          // Limpiar selecciones anteriores al cambiar tipo
+          _patenteSeleccionada = null;
+          _patenteArrendadoController.clear();
+        });
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
@@ -649,6 +803,25 @@ class _HomePageState extends State<HomePage> {
   Widget _buildMainActionButton() {
     bool habilitado = _puedeIniciarViaje;
 
+    // Mensaje dinámico según el estado
+    String getMensaje() {
+      if (!_todosTestsRealizados) {
+        return 'Completa los tests primero';
+      }
+      if (_tipoAutoSeleccionado == null) {
+        return 'Seleccione tipo de vehículo';
+      }
+      if (_tipoAutoSeleccionado == TipoAuto.empresa &&
+          _patenteSeleccionada == null) {
+        return 'Seleccione patente del vehículo';
+      }
+      if (_tipoAutoSeleccionado == TipoAuto.arrendado &&
+          _patenteArrendadoController.text.trim().isEmpty) {
+        return 'Ingrese patente del vehículo';
+      }
+      return 'Registrar Inicio del Viaje';
+    }
+
     return Opacity(
       opacity: habilitado ? 1.0 : 0.5,
       child: Container(
@@ -700,16 +873,15 @@ class _HomePageState extends State<HomePage> {
                       color: Colors.white,
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      habilitado
-                          ? 'Registrar Inicio del Viaje'
-                          : (_tipoAutoSeleccionado == null
-                                ? 'Seleccione vehículo'
-                                : 'Completa los tests primero'),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                    Flexible(
+                      child: Text(
+                        getMensaje(),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ],
