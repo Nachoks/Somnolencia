@@ -1,10 +1,40 @@
 import 'dart:convert';
+import 'dart:async'; // Necesario para el Timeout
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  // IMPORTANTE: Cambia esta URL según tu configuración
-  static const String baseUrl = 'http://192.168.0.25:8090/api';
+  // 1. DEFINIMOS LAS DOS RUTAS POSIBLES
+  static const String _urlLocal = 'http://192.168.0.25:8090/api';
+  static const String _urlExterna = 'http://iaaspa.synology.me:8090/api';
+
+  // 2. LA URL AHORA ES DINÁMICA (No es 'const')
+  // Por defecto asumimos la externa (internet), si falla, probamos local.
+  static String baseUrl = _urlExterna;
+
+  // 3. FUNCIÓN INTELIGENTE DE CONEXIÓN
+  // Esta función debe llamarse al iniciar la App
+  static Future<void> inicializarConexion() async {
+    print("📡 Probando conexión local con $_urlLocal...");
+    try {
+      // Intentamos contactar al servidor local.
+      // Usamos un timeout corto de 2 segundos para no hacer esperar al usuario.
+      // Nota: No importa si da 404 o 401, lo que importa es que RESPONDA.
+      final response = await http
+          .get(Uri.parse('$_urlLocal/ping'))
+          .timeout(const Duration(seconds: 2));
+
+      // Si llegamos aquí, es que el servidor respondió (estamos en la oficina)
+      print("✅ CONEXIÓN LOCAL EXITOSA: Usando $_urlLocal");
+      baseUrl = _urlLocal;
+    } catch (e) {
+      // Si da error de conexión o timeout, asumimos que estamos fuera
+      print("🌍 CONEXIÓN LOCAL FALLIDA ($e). Usando Internet: $_urlExterna");
+      baseUrl = _urlExterna;
+    }
+  }
+
+  // --- EL RESTO DE TUS MÉTODOS SIGUEN IGUAL ---
 
   // LOGIN
   static Future<Map<String, dynamic>> login(
@@ -12,6 +42,7 @@ class ApiService {
     String password,
   ) async {
     try {
+      print("Intentando login en: $baseUrl/login"); // Debug para ver cual usa
       final response = await http.post(
         Uri.parse('$baseUrl/login'),
         headers: {'Content-Type': 'application/json'},
@@ -24,7 +55,6 @@ class ApiService {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
-        // Login exitoso - Guardar token
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', data['access_token']);
         await prefs.setString('usuario', jsonEncode(data['usuario']));
@@ -35,7 +65,6 @@ class ApiService {
           'usuario': data['usuario'],
         };
       } else {
-        // Error 401 (credenciales incorrectas) o 403 (no es conductor)
         return {
           'success': false,
           'message': data['message'] ?? 'Error al iniciar sesión',
@@ -100,24 +129,21 @@ class ApiService {
           },
         );
       }
-
-      // Limpiar datos locales
       await prefs.remove('token');
       await prefs.remove('usuario');
     } catch (e) {
-      // Limpiar datos locales aunque falle la petición
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
     }
   }
 
-  // VERIFICAR SI HAY SESIÓN ACTIVA
+  // VERIFICAR SESIÓN
   static Future<bool> isLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('token') != null;
   }
 
-  // OBTENER USUARIO GUARDADO LOCALMENTE
+  // USUARIO LOCAL
   static Future<Map<String, dynamic>?> getUsuarioLocal() async {
     final prefs = await SharedPreferences.getInstance();
     final usuarioStr = prefs.getString('usuario');
@@ -127,10 +153,11 @@ class ApiService {
     return null;
   }
 
+  // OBTENER PATENTES
   static Future<List<String>> obtenerPatentes() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token'); // Asumo que guardas el token así
+      final token = prefs.getString('token');
 
       final response = await http.get(
         Uri.parse('$baseUrl/vehiculos/patentes'),
@@ -141,9 +168,8 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        // La respuesta es una lista directa: ["PATENTE1", "PATENTE2"]
         List<dynamic> data = jsonDecode(response.body);
-        return data.cast<String>(); // Convertir a List<String>
+        return data.cast<String>();
       } else {
         print('Error al cargar patentes: ${response.body}');
         return [];

@@ -72,9 +72,11 @@ class _ChecklistPageState extends State<ChecklistPage> {
         backgroundColor: const Color(0xFFF35F34),
         foregroundColor: Colors.white,
       ),
+      // Agregamos un fondo blanco general
+      backgroundColor: Colors.white,
       body: Column(
         children: [
-          // --- BARRA DE PROGRESO ---
+          // --- BARRA DE PROGRESO (Sin cambios) ---
           Padding(
             padding: const EdgeInsets.all(20.0),
             child: Column(
@@ -120,7 +122,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
           ),
           const Divider(height: 1),
 
-          // --- LISTA DE CHECKBOXES ---
+          // --- LISTA DE CHECKBOXES (Sin cambios) ---
           Expanded(
             child: ListView.separated(
               itemCount: _items.length,
@@ -129,7 +131,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
                 return CheckboxListTile(
                   title: Text(_items[index].title),
                   value: _items[index].isChecked,
-                  activeColor: Colors.green, // Color cuando está marcado
+                  activeColor: Colors.green,
                   onChanged: (bool? value) {
                     setState(() {
                       _items[index].isChecked = value ?? false;
@@ -140,9 +142,8 @@ class _ChecklistPageState extends State<ChecklistPage> {
             ),
           ),
 
-          // --- BOTÓN DE CONTINUAR ---
+          // --- BOTÓN DE CONTINUAR (AQUÍ ESTÁ EL CAMBIO) ---
           Container(
-            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.white,
               boxShadow: [
@@ -153,31 +154,37 @@ class _ChecklistPageState extends State<ChecklistPage> {
                 ),
               ],
             ),
-            child: SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                // SIEMPRE habilitado (llamamos a _submitForm directamente)
-                onPressed: _submitForm,
-                style: ElevatedButton.styleFrom(
-                  // Cambiamos el color si está incompleto para dar feedback visual
-                  backgroundColor: allChecked
-                      ? const Color(0xFFF35F34)
-                      : Colors.orange,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 4,
-                ),
-                child: Text(
-                  allChecked
-                      ? 'CONFIRMAR Y VOLVER'
-                      : 'CONFIRMAR CON OBSERVACIONES',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+            // 1. Envolvemos el contenido del botón en SafeArea
+            // Ponemos 'top: false' para que solo proteja la parte de abajo
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: ElevatedButton(
+                    onPressed: _submitForm,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: allChecked
+                          ? const Color(0xFFF35F34)
+                          : Colors.orange,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 4,
+                    ),
+                    child: Text(
+                      allChecked
+                          ? 'CONFIRMAR Y VOLVER'
+                          : 'CONFIRMAR CON OBSERVACIONES',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ),

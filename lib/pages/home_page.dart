@@ -290,6 +290,8 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _buildAppBar(),
+      // Asegura que el teclado no tape nada, opcional pero recomendado
+      resizeToAvoidBottomInset: true,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -299,24 +301,29 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 20.0,
-              vertical: 12.0,
+          child: SingleChildScrollView(
+            // CAMBIO CLAVE AQUÍ:
+            // 1. Quitamos el widget 'Padding' que envolvía al Scroll
+            // 2. Ponemos el padding directo en el ScrollView
+            // 3. Le damos MUCHO espacio abajo (ej: 80 o 100) para librar los botones
+            padding: const EdgeInsets.only(
+              left: 20.0,
+              right: 20.0,
+              top: 12.0,
+              bottom:
+                  100.0, // <--- Este es el "aire" extra para que no se tape el botón
             ),
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  _buildHeaderInfo(),
-                  const SizedBox(height: 24),
-                  _buildProgressSection(),
-                  const SizedBox(height: 24),
-                  _buildTestsList(),
-                  const SizedBox(height: 32),
-                  _buildMainActionButton(),
-                  const SizedBox(height: 24),
-                ],
-              ),
+            child: Column(
+              children: [
+                _buildHeaderInfo(),
+                const SizedBox(height: 24),
+                _buildProgressSection(),
+                const SizedBox(height: 24),
+                _buildTestsList(),
+                const SizedBox(height: 32),
+                _buildMainActionButton(),
+                // Ya no necesitas el SizedBox de 24 aquí abajo porque lo pusimos en el padding
+              ],
             ),
           ),
         ),

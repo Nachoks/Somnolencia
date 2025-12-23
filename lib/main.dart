@@ -3,7 +3,10 @@ import 'package:somnolence_app/pages/login_page.dart';
 import 'package:somnolence_app/pages/home_page.dart';
 import 'package:somnolence_app/service/api_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // La app esperará (máx 2 seg) para decidir qué URL usar
+  await ApiService.inicializarConexion();
   runApp(const MyApp());
 }
 
