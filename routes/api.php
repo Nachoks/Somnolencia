@@ -8,7 +8,9 @@ use App\Http\Controllers\VehiculoController;
 // Rutas públicas (sin autenticación)
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/viajes/registrar', [ViajeController::class, 'registrar']);
-
+Route::get('/ping', function () {
+    return response()->json(['status' => 'ok']);
+});
 
 // Rutas protegidas (requieren token)
 Route::middleware('auth:sanctum')->group(function () {
