@@ -21,7 +21,7 @@ class ApiService {
       // Nota: No importa si da 404 o 401, lo que importa es que RESPONDA.
       await http
           .get(Uri.parse('$_urlLocal/ping'))
-          .timeout(const Duration(seconds: 2));
+          .timeout(const Duration(seconds: 7));
 
       // Si llegamos aquí, es que el servidor respondió (estamos en la oficina)
       print("✅ CONEXIÓN LOCAL EXITOSA: Usando $_urlLocal");
