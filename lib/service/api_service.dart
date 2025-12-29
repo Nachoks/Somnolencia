@@ -18,9 +18,8 @@ class ApiService {
     print("📡 Probando conexión local con $_urlLocal...");
     try {
       // Intentamos contactar al servidor local.
-      // Usamos un timeout corto de 2 segundos para no hacer esperar al usuario.
       // Nota: No importa si da 404 o 401, lo que importa es que RESPONDA.
-      final response = await http
+      await http
           .get(Uri.parse('$_urlLocal/ping'))
           .timeout(const Duration(seconds: 2));
 
@@ -33,8 +32,6 @@ class ApiService {
       baseUrl = _urlExterna;
     }
   }
-
-  // --- EL RESTO DE TUS MÉTODOS SIGUEN IGUAL ---
 
   // LOGIN
   static Future<Map<String, dynamic>> login(

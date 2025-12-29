@@ -384,14 +384,6 @@ class _EncuestaFatigaState extends State<EncuestaFatiga> {
   // --- WIDGET ALERTA ---
   Widget _buildAlert() {
     // Calculamos cuántas incorrectas (peligrosas) hubo para mostrar en la alerta
-    int segurasCount = 0;
-    if (userAnswers.isNotEmpty) {
-      for (int i = 0; i < preguntasActivas.length; i++) {
-        if (userAnswers[i] == preguntasActivas[i].respuestaIdeal) {
-          segurasCount++;
-        }
-      }
-    }
 
     return Container(
       key: const ValueKey('alert'),
@@ -441,7 +433,7 @@ class _EncuestaFatigaState extends State<EncuestaFatiga> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Tus respuestas indican riesgo. Solo tuviste $segurasCount respuestas seguras. Por tu seguridad, no puedes conducir.',
+                        'Tus respuestas indican riesgo. Por tu seguridad, no puedes conducir.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 16,

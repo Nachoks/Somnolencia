@@ -8,6 +8,7 @@ class ReaccionViewModel extends ChangeNotifier {
   static const _duracionTest = Duration(seconds: 15);
   static const _intervaloGeneracion = Duration(milliseconds: 1200);
   static const _tiempoVidaEstimulo = Duration(milliseconds: 2000);
+  static const int _umbralAprobacionMs = 650;
 
   Timer? _generadorTimer;
   Timer? _globalTimer;
@@ -137,12 +138,19 @@ class ReaccionViewModel extends ChangeNotifier {
 
     final eficacia = (_targetsTocados / max(_targetsGenerados, 1)) * 100;
 
+    bool estaAprobado = false;
+    if (_targetsTocados > 0 && tiempoPromedio <= _umbralAprobacionMs) {
+      estaAprobado = true;
+    }
+
     return {
       'trp': tiempoPromedio.toStringAsFixed(0),
       'eficacia': eficacia.toStringAsFixed(1),
       'errores': _errores,
       'tocados': _targetsTocados,
       'generados': _targetsGenerados,
+      'aprobado': estaAprobado,
+      'umbral': _umbralAprobacionMs,
     };
   }
 

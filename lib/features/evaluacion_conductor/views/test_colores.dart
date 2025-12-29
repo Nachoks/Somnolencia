@@ -156,45 +156,89 @@ class TestColoresPage extends StatelessWidget {
   void _mostrarResultados(BuildContext context, ReaccionViewModel vm) {
     final r = vm.obtenerResultadosFinales();
 
+    // LEEMOS EL RESULTADO (Ahora sí existe, no dará error)
+    final bool aprobado = r['aprobado'] ?? false;
+    final String tiempo = r['trp'];
+    final int umbral = r['umbral'] ?? 800;
+
     showDialog(
       context: context,
+      barrierDismissible: false, // Obliga a presionar el botón
       builder: (context) => AlertDialog(
-        title: const Text('✅ Evaluación Finalizada'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: Row(
+          children: [
+            Icon(
+              aprobado ? Icons.check_circle : Icons.cancel,
+              color: aprobado ? Colors.green : Colors.red,
+              size: 28,
+            ),
+            const SizedBox(width: 10),
+            Text(aprobado ? 'TEST APROBADO' : 'TEST REPROBADO'),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Tiempo de Reacción Promedio:',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            // Mensaje de estado
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: aprobado ? Colors.green.shade50 : Colors.red.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: aprobado ? Colors.green.shade200 : Colors.red.shade200,
+                ),
+              ),
+              child: Text(
+                aprobado
+                    ? 'Tus reflejos están dentro del rango seguro.'
+                    : 'Tus reflejos son lentos. Por seguridad, descansa.',
+                style: TextStyle(
+                  color: aprobado ? Colors.green.shade800 : Colors.red.shade800,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
-            Text('${r['trp']} ms', style: const TextStyle(fontSize: 18)),
-            const SizedBox(height: 12),
-            const Text(
-              'Tasa de Eficacia:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              '${r['eficacia']}% (${r['tocados']} / ${r['generados']} targets)',
-              style: const TextStyle(fontSize: 18),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Errores Totales:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text('${r['errores']}', style: const TextStyle(fontSize: 18)),
+            const SizedBox(height: 20),
+
+            // Detalles técnicos
+            _filaDetalle('Tiempo Promedio:', '$tiempo ms'),
+            _filaDetalle('Umbral Máximo:', '$umbral ms'), // Mostramos el límite
+            _filaDetalle('Aciertos:', '${r['tocados']} de ${r['generados']}'),
+            _filaDetalle('Errores:', '${r['errores']}'),
           ],
         ),
         actions: [
-          TextButton(
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: aprobado ? Colors.green : Colors.red,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop(true);
-            },
+              Navigator.of(context).pop(); // Cierra el diálogo
 
-            child: const Text('Aceptar', style: TextStyle(fontSize: 16)),
+              // DEVUELVE EL BOOLEANO A LA PANTALLA ANTERIOR
+              // Esto arregla que el HomePage sepa si pasó o no
+              Navigator.of(context).pop(aprobado);
+            },
+            child: const Text('FINALIZAR'),
           ),
+        ],
+      ),
+    );
+  }
+
+  // Helper para que se vea ordenado
+  Widget _filaDetalle(String label, String valor) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(valor),
         ],
       ),
     );

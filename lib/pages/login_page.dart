@@ -214,43 +214,43 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 20),
 
                   // Nota de ayuda
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.blue[50],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue[200]!),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.info_outline,
-                              color: Colors.blue[700],
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Usuario de prueba',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue[700],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Usuario: juanito\nContraseña: 123456',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.blue[900],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  // Container(
+                  //   padding: const EdgeInsets.all(12),
+                  //   decoration: BoxDecoration(
+                  //     color: Colors.blue[50],
+                  //     borderRadius: BorderRadius.circular(8),
+                  //     border: Border.all(color: Colors.blue[200]!),
+                  //   ),
+                  //   child: Column(
+                  //     children: [
+                  //       Row(
+                  //         children: [
+                  //           Icon(
+                  //             Icons.info_outline,
+                  //             color: Colors.blue[700],
+                  //             size: 20,
+                  //           ),
+                  //           const SizedBox(width: 8),
+                  //           Text(
+                  //             'Usuario de prueba',
+                  //             style: TextStyle(
+                  //               fontWeight: FontWeight.bold,
+                  //               color: Colors.blue[700],
+                  //             ),
+                  //           ),
+                  //         ],
+                  //       ),
+                  //       const SizedBox(height: 8),
+                  //       Text(
+                  //         'Usuario: juanito\nContraseña: 123456',
+                  //         style: TextStyle(
+                  //           fontSize: 12,
+                  //           color: Colors.blue[900],
+                  //         ),
+                  //       ),
+                  //     ],
+                  //   ),
+                  // ),
                 ],
               ),
             ),
