@@ -18,14 +18,23 @@ class Personal extends Model
         'rut',
         'id_empresa'
     ];
+    
+    // --- AGREGAR ESTO ---
+    // 1. Esto le dice a Laravel: "Cuando conviertas a JSON, incluye este campo extra"
+    protected $appends = ['nombre_completo'];
 
-    // Relación: Pertenece a una Empresa
+    // 2. Aquí defines cómo se crea ese campo extra
+    public function getNombreCompletoAttribute()
+    {
+        // Concatenamos tus columnas reales
+        return "{$this->nombre_personal} {$this->apellido_personal}";
+    }
+
     public function empresa()
     {
         return $this->belongsTo(Empresa::class, 'id_empresa', 'id_empresa');
     }
 
-    // Relación: Tiene un Usuario asociado (Login)
     public function usuario()
     {
         return $this->hasOne(User::class, 'id_personal', 'id_personal');

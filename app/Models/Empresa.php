@@ -22,7 +22,6 @@ class Empresa extends Model
         return $this->hasMany(Personal::class, 'id_empresa', 'id_empresa');
     }
 
-    // --- AGREGAR ESTO ---
     // Relación: Una empresa tiene muchos vehículos
     public function vehiculos()
     {

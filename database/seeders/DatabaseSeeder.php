@@ -79,12 +79,7 @@ class DatabaseSeeder extends Seeder
 
         // 5. Crear Vehículos
         $vehiculos = [
-            ['patente' => 'HHYT-22', 'disponibilidad' => 'Disponible'],
-            ['patente' => 'JKLL-55', 'disponibilidad' => 'Disponible'],
-            ['patente' => 'BBCL-10', 'disponibilidad' => 'Disponible'],
-            ['patente' => 'ZZYT-99', 'disponibilidad' => 'Disponible'],
-            ['patente' => 'AABB-33', 'disponibilidad' => 'Disponible'],
-            ['patente' => 'CCDD-44', 'disponibilidad' => 'Disponible'],
+            ['patente' => 'TXYH73', 'disponibilidad' => 'Disponible'],
         ];
 
         foreach ($vehiculos as $vehiculo) {
