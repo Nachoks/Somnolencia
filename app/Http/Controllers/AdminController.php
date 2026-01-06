@@ -12,7 +12,7 @@ use App\Models\TipoUsuario;
 
 class AdminController extends Controller
 {
-    // --- 1. LISTAR USUARIOS (Ya la tenías, la dejamos igual) ---
+    // --- LISTAR USUARIOS  ---
     public function listarUsuarios()
     {
         $users = User::with(['personal.empresa', 'roles'])->get();
@@ -24,7 +24,7 @@ class AdminController extends Controller
         return response()->json($usersOrdenados, 200);
     }
 
-    // --- 2. NUEVA: LISTAR EMPRESAS (Para el Dropdown de Flutter) ---
+    // --- LISTAR EMPRESAS  ---
     public function listarEmpresas()
     {
         // Seleccionamos solo lo necesario para el dropdown
@@ -32,7 +32,7 @@ class AdminController extends Controller
         return response()->json($empresas, 200);
     }
 
-    // --- 3. NUEVA: CREAR USUARIO (Transacción Completa) ---
+    // --- CREAR USUARIO  ---
     public function crearUsuario(Request $request)
     {
         // Validación de datos entrantes desde Flutter
@@ -50,7 +50,7 @@ class AdminController extends Controller
             // INICIO TRANSACCIÓN
             $result = DB::transaction(function () use ($request) {
                 
-                // A. Crear Personal
+                // Crear Personal
                 $nuevoPersonal = Personal::create([
                     'nombre_personal'   => $request->input('personal.nombre'),
                     'apellido_personal' => $request->input('personal.apellido'),
@@ -58,20 +58,19 @@ class AdminController extends Controller
                     'id_empresa'        => $request->input('personal.id_empresa'),
                 ]);
 
-                // B. Crear Usuario vinculado
+                // Crear Usuario vinculado
                 // NOTA: Como en tu modelo User.php tienes 'password' => 'hashed',
                 // Laravel encriptará automáticamente al crear. No hace falta Hash::make() aquí si el cast funciona.
-                // Sin embargo, pasar el valor directo es lo correcto con ese cast.
                 $nuevoUsuario = User::create([
                     'nombre_usuario' => $request->input('usuario.username'),
                     'password'       => $request->input('usuario.password'), 
                     'id_personal'    => $nuevoPersonal->id_personal,
                 ]);
 
-                // C. Asignar Roles
-                // Buscamos los IDs de los roles basados en los nombres que envía Flutter (ej: 'Administrador')
+                // Asignar Roles
+                // Buscamos los IDs de los roles basados en los nombres que envía Flutter 
                 $rolesNombres = $request->input('roles');
-                $rolesIds = TipoUsuario::whereIn('tipo_usuario', $rolesNombres) // Ajusta 'tipo_usuario' si tu columna de nombre es otra
+                $rolesIds = TipoUsuario::whereIn('tipo_usuario', $rolesNombres) 
                                        ->pluck('id_tipo_usuario');
                 
                 // Vinculamos en la tabla pivote usuario_rol

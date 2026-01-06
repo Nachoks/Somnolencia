@@ -11,30 +11,30 @@ class AuthController extends Controller
     // LOGIN
     public function login(Request $request)
     {
-        // 1. Validar
+        // Validar
         $request->validate([
             'nombre_usuario' => 'required|string',
             'password' => 'required|string',
         ]);
 
-        // 2. Buscar Usuario
+        // Buscar Usuario
         $user = User::where('nombre_usuario', $request->nombre_usuario)->first();
 
-        // 3. Verificar Password
+        // Verificar Password
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
                 'message' => 'Credenciales incorrectas'
             ], 401);
         }
 
-        // 4. CARGAR RELACIONES (LA CLAVE DE TODO)
+        // CARGAR RELACIONES (LA CLAVE DE TODO)
         // Esto le pega al objeto User los datos de personal, empresa y roles
         $user->load(['personal.empresa', 'roles']);
 
-        // 5. Crear Token
+        // Crear Token
         $token = $user->createToken('movil')->plainTextToken;
 
-        // 6. RESPONDER
+        // RESPONDER
         // NOTA: No construimos el array 'usuario' a mano. 
         // Pasamos el objeto $user directo. Laravel serializará automáticamente:
         // user -> personal (con nombre_completo append) -> empresa
@@ -42,7 +42,7 @@ class AuthController extends Controller
             'message' => 'Login exitoso',    
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'usuario' => $user, // <--- AQUÍ EL CAMBIO IMPORTANTE
+            'usuario' => $user, 
         ], 200);
     }
 

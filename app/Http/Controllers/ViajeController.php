@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Http; // Importante para descargar el mapa
 use App\Mail\ReporteViajeMail;
+use App\Models\User;
 
 class ViajeController extends Controller
 {
@@ -21,8 +22,20 @@ class ViajeController extends Controller
         ]);
 
         $datos = $request->all();
+
+        // --- NUEVO: BUSCAR NOMBRE COMPLETO ---
+        // Buscamos el usuario por su 'nombre_usuario' (que es lo que envía el app)
+        $usuario = User::where('nombre_usuario', $datos['conductor'])->first();
         
-        // Generar nombre único para el archivo
+        // Si encontramos al usuario y tiene ficha de personal asociada
+        if ($usuario && $usuario->personal) {
+            // Reemplazamos el username por el nombre completo real
+            // Esto actualizará automáticamente el PDF y el Correo
+            $datos['conductor'] = $usuario->personal->nombre_completo;
+        }
+        // -------------------------------------
+        
+        // Generar nombre único para el archivo (usando ahora el nombre real si existe)
         $fecha = date('Ymd_His');
         $nombreConductor = str_replace(' ', '_', $datos['conductor']);
         $nombreArchivo = "{$fecha}_reporte_viaje_{$nombreConductor}.pdf";

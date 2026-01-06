@@ -19,11 +19,10 @@ class Personal extends Model
         'id_empresa'
     ];
     
-    // --- AGREGAR ESTO ---
-    // 1. Esto le dice a Laravel: "Cuando conviertas a JSON, incluye este campo extra"
+    // Esto le dice a Laravel: "Cuando conviertas a JSON, incluye este campo extra"
     protected $appends = ['nombre_completo'];
 
-    // 2. Aquí defines cómo se crea ese campo extra
+    // Aquí defines cómo se crea ese campo extra
     public function getNombreCompletoAttribute()
     {
         // Concatenamos tus columnas reales
