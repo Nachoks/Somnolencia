@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('nombre_usuario', 50);
             $table->string('password', 100);
             $table->timestamps();
+            $table->boolean('estado')->default(true);
             $table->foreignId('id_personal')
               ->unique()
               ->constrained('personal', 'id_personal')

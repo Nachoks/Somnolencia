@@ -32,6 +32,26 @@ class AdminController extends Controller
         return response()->json($empresas, 200);
     }
 
+    public function cambiarEstadoUsuario($id){
+        try {
+            $user = User::findOrFail($id);
+        
+            // Invertimos el valor de 'estado'
+            $user->estado = !$user->estado; 
+            $user->save();
+
+            $texto = $user->estado ? 'Habilitado' : 'Deshabilitado';
+
+            return response()->json([
+                'message' => "Usuario $texto correctamente",
+                'user' => $user
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Error', 'error' => $e->getMessage()], 500);
+        }
+    }
+
     // --- CREAR USUARIO  ---
     public function crearUsuario(Request $request)
     {
@@ -55,6 +75,7 @@ class AdminController extends Controller
                     'nombre_personal'   => $request->input('personal.nombre'),
                     'apellido_personal' => $request->input('personal.apellido'),
                     'rut'               => $request->input('personal.rut'),
+                    'correo' => $request->personal['correo'] ?? null,
                     'id_empresa'        => $request->input('personal.id_empresa'),
                 ]);
 
@@ -93,4 +114,6 @@ class AdminController extends Controller
             ], 500);
         }
     }
+
+
 }

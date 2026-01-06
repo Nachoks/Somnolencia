@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('apellido_personal', 50);
             $table->string('rut', 50)->unique();
             $table->foreignId('id_empresa')->constrained('empresa','id_empresa');
+            $table->string('correo')->nullable();
             $table->timestamps();
         });
     }

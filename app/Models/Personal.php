@@ -16,6 +16,7 @@ class Personal extends Model
         'nombre_personal',
         'apellido_personal',
         'rut',
+        'correo',
         'id_empresa'
     ];
     

@@ -11,7 +11,7 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable; // <-- Agregamos HasApiTokens
+    use HasApiTokens, HasFactory, Notifiable;
 
     //Definir tabla personalizada
     protected $table = 'usuarios';
@@ -21,13 +21,12 @@ class User extends Authenticatable
 
     /**
      * Los atributos que se pueden asignar masivamente.
-     * Aquí ponemos las columnas REALES de tu tabla usuarios.
      */
     protected $fillable = [
-        'nombre_usuario', // Tu columna personalizada
-        'password',       // Acordamos usar el estándar 'password'
-        'id_personal',    // La llave foránea
-
+        'nombre_usuario', 
+        'password',       
+        'id_personal',
+        'estado', // <--- ✅ AGREGADO: Para permitir guardar el estado
     ];
 
     /**
@@ -44,11 +43,11 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime', // Coméntalo si no usas verificación de email aún
-            'password' => 'hashed', // Esto encripta la contraseña automáticamente
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+            'estado' => 'boolean', // <--- ✅ AGREGADO: Para que Laravel lo trate como true/false
         ];
     }
-
 
     public function personal()
     {
@@ -57,15 +56,14 @@ class User extends Authenticatable
 
     /*
      * Relación: Un Usuario tiene muchos Roles (Tipos).
-     * Uso: $user->roles
      */
     public function roles()
     {
         return $this->belongsToMany(
             TipoUsuario::class, 
-            'usuario_rol',      // Tabla intermedia
-            'id_usuario',       // FK de este modelo en la intermedia
-            'id_tipo_usuario'   // FK del otro modelo en la intermedia
+            'usuario_rol',      
+            'id_usuario',       
+            'id_tipo_usuario'   
         );
     }
 }

@@ -22,8 +22,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // --- ZONA ADMIN ---
     Route::get('/admin/users', [AdminController::class, 'listarUsuarios']);
-    
-    // NUEVAS RUTAS:
     Route::get('/admin/empresas', [AdminController::class, 'listarEmpresas']); // Para el dropdown
     Route::post('/admin/usuarios', [AdminController::class, 'crearUsuario']);  // Para guardar el formulario
+    Route::put('/admin/usuarios/{id}/estado', [AdminController::class, 'cambiarEstadoUsuario']);
 });

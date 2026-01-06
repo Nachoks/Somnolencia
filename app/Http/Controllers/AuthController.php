@@ -26,6 +26,12 @@ class AuthController extends Controller
                 'message' => 'Credenciales incorrectas'
             ], 401);
         }
+        // Verificar Estado
+        if (!$user->estado) {
+            return response()->json([
+                'message' => 'Su cuenta está deshabilitada. Contacte al administrador.'
+            ], 403); // Retornamos 403 (Prohibido) en lugar de 401
+        }
 
         // CARGAR RELACIONES (LA CLAVE DE TODO)
         // Esto le pega al objeto User los datos de personal, empresa y roles
