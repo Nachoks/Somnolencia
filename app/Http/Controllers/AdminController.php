@@ -115,5 +115,69 @@ class AdminController extends Controller
         }
     }
 
+    // --- EDITAR USUARIO ---
+    public function actualizarUsuario(Request $request, $id)
+    {
+        $usuario = User::with('personal')->find($id);
+
+        if (!$usuario) {
+            return response()->json(['success' => false, 'message' => 'Usuario no encontrado'], 404);
+        }
+
+        $personal = $usuario->personal;
+
+        // 1. Validaciones (Agregamos 'roles')
+        $request->validate([
+            'nombre'   => 'required|string',
+            'apellido' => 'required|string',
+            'rut'      => 'required|string|unique:personal,rut,' . $personal->id_personal . ',id_personal',
+            'correo'   => 'required|email', 
+            'password' => 'nullable|string|min:6',
+            'roles'    => 'nullable|array', // ✅ Permitimos recibir roles
+        ]);
+
+        try {
+            DB::transaction(function () use ($request, $usuario, $personal) {
+                
+                // 2. Actualizar Datos Personales
+                $personal->update([
+                    'nombre_personal'   => $request->input('nombre'),
+                    'apellido_personal' => $request->input('apellido'),
+                    'rut'               => $request->input('rut'),
+                    'correo'            => $request->input('correo'),
+                ]);
+
+                // 3. Actualizar Password (si viene)
+                if ($request->filled('password')) {
+                    $usuario->password = $request->input('password');
+                    $usuario->save();
+                }
+
+                // 4. ✅ ACTUALIZAR ROLES
+                // Si el request trae 'roles', los actualizamos.
+                if ($request->has('roles')) {
+                    $rolesNombres = $request->input('roles');
+                    
+                    // Buscamos los IDs correspondientes a esos nombres
+                    $rolesIds = TipoUsuario::whereIn('tipo_usuario', $rolesNombres)
+                                           ->pluck('id_tipo_usuario');
+
+                    // 'sync' borra los roles viejos y pone los nuevos. ¡Mágico!
+                    $usuario->roles()->sync($rolesIds);
+                }
+            });
+
+            return response()->json([
+                'success' => true, 
+                'message' => 'Usuario y roles actualizados correctamente'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Error al actualizar: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 
 }

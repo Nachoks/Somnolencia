@@ -25,4 +25,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/admin/empresas', [AdminController::class, 'listarEmpresas']); // Para el dropdown
     Route::post('/admin/usuarios', [AdminController::class, 'crearUsuario']);  // Para guardar el formulario
     Route::put('/admin/usuarios/{id}/estado', [AdminController::class, 'cambiarEstadoUsuario']);
+    Route::put('/admin/usuarios/{id}', [AdminController::class, 'actualizarUsuario']);
 });

@@ -17,13 +17,11 @@ class VehiculoController extends Controller
             return response()->json(['message' => 'Usuario sin empresa asignada'], 404);
         }
 
-        // 3. Obtener el ID de la empresa
+        // Obtener el ID de la empresa
         $idEmpresa = $user->personal->id_empresa;
 
-        // 4. Buscar SOLO las patentes de esa empresa
-        // 'pluck' nos devuelve solo un array de strings: ["AB-CD-12", "FG-HI-34"]
+        // Buscar SOLO las patentes de esa empresa
         $patentes = Vehiculo::where('id_empresa', $idEmpresa)
-                            // ->where('disponibilidad', '!=', 'Mantenimiento') Opcional: filtrar por disponibilidad
                             ->pluck('patente');
 
         return response()->json($patentes);
