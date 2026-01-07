@@ -74,4 +74,35 @@ class AuthController extends Controller
             'usuario' => $user // Enviamos el objeto completo estructura original
         ], 200);
     }
+
+    // CAMBIAR CONTRASEÑA
+    public function changePassword(Request $request)
+    {
+        // 1. Validar los datos que llegan
+        $request->validate([
+            'current_password' => 'required',
+            'new_password' => 'required|string|min:6|confirmed', 
+            // 'confirmed' busca automáticamente un campo 'new_password_confirmation'
+        ]);
+
+        // 2. Obtener el usuario autenticado
+        $user = $request->user();
+
+        // 3. Verificar que la contraseña actual sea correcta
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'message' => 'La contraseña actual es incorrecta.'
+            ], 400);
+        }
+
+        // 4. Actualizar la contraseña
+        // Laravel se encarga de hashear automáticamente si está en el cast del modelo,
+        // pero por seguridad explícita usamos Hash::make aquí también.
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        return response()->json([
+            'message' => 'Contraseña actualizada correctamente.'
+        ], 200);
+    }
 }

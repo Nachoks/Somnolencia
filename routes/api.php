@@ -19,7 +19,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     
     Route::get('/vehiculos/patentes', [VehiculoController::class, 'obtenerPatentes']);
-
+    Route::post('/change-password', [AuthController::class, 'changePassword']);
     // --- ZONA ADMIN ---
     Route::get('/admin/users', [AdminController::class, 'listarUsuarios']);
     Route::get('/admin/empresas', [AdminController::class, 'listarEmpresas']); // Para el dropdown
